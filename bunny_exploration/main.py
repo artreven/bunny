@@ -7,7 +7,7 @@ import fca
 
 import identity
 import term_parser
-#import reduce
+import reducing
 
 ####SIZE = 2
 id1 = identity.Identity.make_identity('x', 'x')
