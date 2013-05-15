@@ -8,6 +8,7 @@ import fca
 import identity
 import term_parser
 import reducing
+import bunny
 
 ####SIZE = 2
 id1 = identity.Identity.make_identity('x', 'x')
@@ -87,9 +88,21 @@ id68 = identity.Identity.make_identity('-x', 'y*x')
 id69 = identity.Identity.make_identity('-x', 'y*y')
 id70 = identity.Identity.make_identity('-x', 'y*z')
 
+id_ls = [id1, id2, id3, id4, id5, id6, id7, id8, id9, id10,
+         id11, id12, id13, id14, id15, id16, id17, id18, id19, id20,
+         id21, id22, id23, id24, id25, id26, id27, id28, id29, id30,
+         id31, id32, id33, id34, id35, id36, id37, id38, id39, id40,
+         id41, id42, id43, id44, id45, id46, id47, id48, id49, id50,
+         id51, id52, id53, id54, id55, id56, id57, id58, id59, id60,
+         id61, id62, id63, id64, id65, id66, id67, id68, id69, id70]
+
 if __name__ == '__main__':
-    t0 = 'x'
-    t1 = 'a'
-    t2 = 'a*x'
-    parsed = term_parser.make_input(True, t0, t1, t2)
-    print parsed
+    for j in range(70):
+        i_sat = 0
+        i = 0
+        for bun in bunny.bunnies(3):
+            sat = bun.check_id(id_ls[j])
+            if sat == True:
+                i_sat += 1
+            i += 1
+        print 'Out of all {} bunnies {} satisfy the identity {}: {}'.format(i, i_sat, j+1, id_ls[j])

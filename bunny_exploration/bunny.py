@@ -44,12 +44,14 @@ class Bunny(object):
             s += '\n'
         return s
         
-    def check_id(self, id_, limit):
+    def check_id(self, id_, limit=None):
         '''
         check if bunny satisfies id
         
         @param limit: checks up to this limit
         '''
+        if limit == None:
+            limit = self.size
         return id_(self, limit)
        
         
