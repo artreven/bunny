@@ -42,10 +42,12 @@ def test_parsed2term():
     assert t3.func_str == 'f2(f2(f0,f1(x)),f1(y))'
     
 def test_evaluate_term():
-    f2 = lambda x, y: x
-    f1 = lambda x: x+1
+    f2_dict = {'condition1': (lambda x, y: True,
+                              lambda x, y: x)}
+    f1_dict = {'condition1': (lambda x: True,
+                              lambda x: x + 1)}
     f0 = 0
-    bun = bunny_exploration.bunny.Bunny(f2, f1, f0)
+    bun = bunny_exploration.bunny.Bunny(f2_dict, f1_dict, f0, 'N')
     str1 = 'x'
     str2 = '-[x*a]'
     t1 = Term.parsed2term(bunny_exploration.term_parser.parse_str(str1))

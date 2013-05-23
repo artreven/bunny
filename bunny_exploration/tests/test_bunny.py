@@ -11,14 +11,16 @@ from bunny_exploration.bunny import *
 class TestBunny:
 
     def setUp(self):
-        f2 = lambda x, y: x
-        f1 = lambda x: 0
+        f2_dict = {'condition1': (lambda x, y: True,
+                                  lambda x, y: x)}
+        f1_dict = {'condition1': (lambda x: True,
+                                  lambda x: 0)}
         f0 = 0
         self.id1 = bunny_exploration.identity.Identity.make_identity('x',
                                                                      '-[x*a]')
         self.id2 = bunny_exploration.identity.Identity.make_identity('x',
                                                                      'x*a')
-        self.bunny = Bunny(f2, f1, f0)
+        self.bunny = Bunny(f2_dict, f1_dict, f0, 'N')
 
     def tearDown(self):
         pass
@@ -47,10 +49,16 @@ def natural_output(bunny, limit):
 class TestInfBunny():
     
     def setup(self):
-        f2 = lambda x, y: x
-        f1 = lambda x: 0
+        f2_dict = {'condition1': (lambda x, y: True,
+                                  lambda x, y: x)}
+        f1_dict = {'condition1': (lambda x: True,
+                                  lambda x: 0)}
         f0 = 0
-        self.bunny = InfBunny(f2, f1, f0)
+        self.id1 = bunny_exploration.identity.Identity.make_identity('x',
+                                                                     '-[x*a]')
+        self.id2 = bunny_exploration.identity.Identity.make_identity('x',
+                                                                     'x*a')
+        self.bunny = InfBunny(f2_dict, f1_dict)
         print '\n\n !!!!!!!!!!!!Next Case'
 
     def teardown(self):

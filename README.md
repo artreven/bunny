@@ -12,7 +12,7 @@ as attributes.
 Example of bunny:
 <table>
   <tr>
-    <th>*f2*</th> <th>0</th> <th>1</th> <td>		</td> <th>*f1*</th> <td></td> <td>		</td> <th>*f0*</th>
+    <td>f2</td> <th>0</th> <th>1</th> <td>		</td> <td>f1</td> <td></td> <td>		</td> <td>f0</td>
   </tr>
   <tr>
     <th>0</th> <td>0</td> <td>1</td> <td>		</td> <th>0</th> <td>1</td> <td>		</td> <td>0</td>

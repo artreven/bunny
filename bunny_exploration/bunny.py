@@ -12,16 +12,16 @@ class Bunny(object):
     General Bunny class, superclass for fin_bunny and inf_bunny
     '''
     
-    def __init__(self, f2, f1, f0, f2_dict, f1_dict, f0_dict, index, size=None):
+    def __init__(self, f2_dict, f1_dict, f0_dict, index, size=None):
         '''
         Constructor
         '''
         self.f2_dict = f2_dict
         self.f1_dict = f1_dict
         self.f0_dict = f0_dict
-        self.f2 = f2
-        self.f1 = f1
-        self.f0 = f0
+        self.f2 = _generate_f2(f2_dict)
+        self.f1 = _generate_f1(f1_dict)
+        self.f0 = f0_dict
         self.index = index
         if size == None:
             self.size = len(self.f1_dict)
@@ -65,11 +65,11 @@ class InfBunny(Bunny):
     Class for infinite bunnies
     '''
     
-    def __init__(self, f2, f1, f0, f2_dict, f1_dict):
+    def __init__(self, f2_dict, f1_dict):
         '''
         Constructor
         '''
-        super(InfBunny, self).__init__(f2, f1, f0, f2_dict, f1_dict, 0, 'N/A', 'Inf')
+        super(InfBunny, self).__init__(f2_dict, f1_dict, 0, 'N/A', 'Inf')
         
     def __str__(self):
         raise 'NotImplementedYet'
@@ -122,7 +122,7 @@ def constraints(id_ls):
         eq_ls.append(left_repl - right_repl)
     return sympy.solve(eq_ls, a, b, c, d, e, dict=True), eq_ls
 
-def generate_f2(dict_values):
+def _generate_f2(dict_values):
     '''
     Make binary function: N_0*N_0 -> N_0, from dict_values. 
     '''
@@ -138,7 +138,7 @@ def generate_f2(dict_values):
                     return case(m, n)
     return f2
         
-def generate_f1(dict_values):
+def _generate_f1(dict_values):
     '''
     Make unary function: N_0 -> N_0, from dict_values. 
     '''
@@ -217,9 +217,7 @@ def inf_bunnies(id_pos_ls, id_neg):
              for u1 in range(2))
     
     for f2_dict, f1_dict in all_f:
-        f2 = generate_f2(f2_dict)
-        f1 = generate_f1(f1_dict)
-        yield InfBunny(f2, f1, f0, f2_dict, f1_dict)
+        yield InfBunny(f2_dict, f1_dict)
         
 def bunnies(size):
     '''
@@ -240,10 +238,23 @@ def bunnies(size):
              for v1 in xrange(size ** size)
              for v0 in xrange(1))
     
-    for f2_dict, f1_dict, f0, index in all_f:
-        f2 = generate_f2(f2_dict)
-        f1 = generate_f1(f1_dict)
-        yield Bunny(f2, f1, f0, f2_dict, f1_dict, f0, index)
+    for f2_dict, f1_dict, f0_dict, index in all_f:
+        yield Bunny(f2_dict, f1_dict, f0_dict, index)
+        
+def show(index, size):
+    '''
+    Show bunny with given index.
+    '''
+    v2 = index % (size ** (size**2))
+    v1 = ((index - v2) / (size ** (size**2))) % (size ** size)
+    v0 = ((index - v2 - v1) / (size ** (size**2 + size))) % (size ** (size**2))
+    f2_dict = dict([[(i, j), (v2 / (size ** (size*i + j)) % size)]
+                     for i in range(size)
+                     for j in range(size)])
+    f1_dict = dict([[i, (v1 / size**i % size)]
+                     for i in range(size)])
+    f0 = v0
+    return Bunny(f2_dict, f1_dict, f0, index)
     
         
 ########################################################

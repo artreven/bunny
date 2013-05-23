@@ -1,2 +1,2 @@
 import debug
-import error_finder
+from error_finder import *

@@ -12,6 +12,7 @@ import identity
 import term_parser
 import reducing
 import bunny
+from prover9mace4 import *
 
 ####SIZE = 2
 id1 = identity.Identity.make_identity('x', 'x')
@@ -99,50 +100,67 @@ id_ls = [id1, id2, id3, id4, id5, id6, id7, id8, id9, id10,
          id51, id52, id53, id54, id55, id56, id57, id58, id59, id60,
          id61, id62, id63, id64, id65, id66, id67, id68, id69, id70]
 
-if __name__ == '__main__':
-    from collections import defaultdict
-    size = 2
-    bun_num = 0
-    total_bun = size ** (size**2 + size + 1)
-    def foo():
-        now = time.time()
-        now_part = now
-        i_sat = defaultdict(int)
-        i = 0
-        for bun in bunny.bunnies(size):
-            i += 1
-            if (i % (total_bun/50)) == 0:
-                out = '{}% complete'.format((100*i) / total_bun)
-                out += '\t it took {} sec'.format(time.time() - now_part)
-                print out
-                now_part = time.time()
-            for j in range(70):
-                sat = bun.check_id(id_ls[j])
-                if sat == True:
-                    i_sat[j] += 1
-        for j in range(70):
-            out = '{:4} bunnies satisfy id{:3} : {}'.format(i_sat[j], j+1, id_ls[j])
+###############################################################################
+from collections import defaultdict
+
+size = 2
+bun_num = 0
+total_bun = size ** (size**2 + size + 1)
+
+def foo1():
+    now = time.time()
+    now_part = now
+    i_sat = defaultdict(int)
+    i = 0
+    for bun in bunny.bunnies(size):
+        i += 1
+        if (i % (total_bun/50)) == 0:
+            out = '{}% complete'.format((100*i) / total_bun)
+            out += '\t it took {} sec'.format(time.time() - now_part)
             print out
-        print 'total execution time: {}'.format(time.time() - now)
+            now_part = time.time()
+        for j in range(70):
+            sat = bun.check_id(id_ls[j])
+            if sat == True:
+                i_sat[j] += 1
+    for j in range(70):
+        out = '{:4} bunnies satisfy id{:3} : {}'.format(i_sat[j], j+1, id_ls[j])
+        print out
+    print 'total execution time: {}'.format(time.time() - now)
         
-    def foo2(*ids):
-        for id_ in ids:
-            print id_
-        for bun in bunny.bunnies(size):
-            if all(bun.check_id(id_) for id_ in ids):
-                print bun
-    
-    def foo3(lim):
-        res = []
-        for k in range(70):
-            for j in range(k+1, 70):
-                sat = [(k, j)
-                       for bun in bunny.bunnies(size) 
-                       if bun.check_id(id_ls[k])
-                       if bun.check_id(id_ls[j])]
-                if (len(sat) > 0) and (len(sat) <= lim):
-                    res.append(sat)
-        print len(res)
-        return res
-    r = foo3(2)
-    #foo2(id44)
+def foo2(*ids):
+    for id_ in ids:
+        print id_
+    for bun in bunny.bunnies(size):
+        if all(bun.check_id(id_) for id_ in ids):
+            print bun
+
+def foo3(lim):
+    res = []
+    for k in range(70):
+        for j in range(k+1, 70):
+            sat = [(k, j)
+                   for bun in bunny.bunnies(size) 
+                   if bun.check_id(id_ls[k])
+                   if bun.check_id(id_ls[j])]
+            if (len(sat) > 0) and (len(sat) <= lim):
+                res.append(sat)
+    print len(res)
+    return res
+
+def init_cxt(size):
+    obj_ls = []
+    att_ls = map(str, id_ls)
+    table = []
+    for bun in bunny.bunnies(size):
+        obj_ls.append(str(size) + '_' + str(bun.index))
+        row = [bun.check_id(id_) for id_ in id_ls]
+        table.append(row)
+    cxt = fca.Context(table, obj_ls, att_ls)
+    return cxt
+
+if __name__ == '__main__':
+    now = time.time()
+    cxt = init_cxt(1)
+    print time.time() - now
+    bb = read_model('./prover9mace4/impl1_33mace4.out')

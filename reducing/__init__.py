@@ -1,1 +1,1 @@
-import reducing
+from reducing import *
