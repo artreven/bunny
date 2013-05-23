@@ -34,22 +34,22 @@ class Identity(object):
             return self.left_term(bunny, values) == self.right_term(bunny, values)
         
         if self.var_count == 1:
-            return all([evaluate([x, 0, 0, 0]) for x in range(limit)])
+            return all(evaluate([x, 0, 0, 0]) for x in xrange(limit))
         elif self.var_count == 2:
-            return all([evaluate([x, y, 0, 0])
-                        for x in range(limit)
-                        for y in range(limit)])
+            return all(evaluate([x, y, 0, 0])
+                       for x in xrange(limit)
+                       for y in xrange(limit))
         elif self.var_count == 3:
-            return all([evaluate([x, y, z, 0])
-                        for x in range(limit)
-                        for y in range(limit)
-                        for z in range(limit)])
+            return all(evaluate([x, y, z, 0])
+                       for x in xrange(limit)
+                       for y in xrange(limit)
+                       for z in xrange(limit))
         elif self.var_count == 4:
-            return all([evaluate([x, y, z, w])
-                        for x in range(limit)
-                        for y in range(limit)
-                        for z in range(limit)
-                        for w in range(limit)])
+            return all(evaluate([x, y, z, w])
+                       for x in xrange(limit)
+                       for y in xrange(limit)
+                       for z in xrange(limit)
+                       for w in xrange(limit))
     
     @classmethod
     def make_identity(cls, left_str, right_str):

@@ -43,6 +43,11 @@ class Bunny(object):
                 s += '\t\t' + str(self.f0_dict)
             s += '\n'
         return s
+    
+    def __eq__(self, other):
+        return ((self.f2_dict == other.f2_dict) and
+                (self.f1_dict == other.f1_dict) and
+                (self.f0_dict == other.f0_dict))
         
     def check_id(self, id_, limit=None):
         '''
@@ -224,16 +229,16 @@ def bunnies(size):
                      for i in range(size)
                      for j in range(size)]),
               
-              dict([[(i), (v1 / size**i % size)]
+              dict([[i, (v1 / size**i % size)]
                      for i in range(size)]),
               
               v0,
               
-              (v2+1) * (v1+1) * (v0+1) - 1)
+              v2 + v1*(size ** (size**2)) + v0*(size ** (size**2 + size)))
              
-             for v2 in range(size ** (size**2))
-             for v1 in range(size ** size)
-             for v0 in range(size))
+             for v2 in xrange(size ** (size**2))
+             for v1 in xrange(size ** size)
+             for v0 in xrange(1))
     
     for f2_dict, f1_dict, f0, index in all_f:
         f2 = generate_f2(f2_dict)
@@ -249,13 +254,16 @@ def nth(iterable, n, default=None):
 
 if __name__ == '__main__':
     import time
-        
+    
+    now = time.time()
+    for _ in bunnies(2):
+        pass
+    print time.time() - now
+    
     id1 = identity.Identity.make_identity('x', 'a*[-x]') #45
     id2 = identity.Identity.make_identity('x', '-[a*x]') #55
-    now = time.time()
-    bunny_found = InfBunny.find([id1,], id2, limit=6)
-    print time.time() - now
-    assert bunny_found != None
+    #found = InfBunny.find([id1,], id2, limit=6)
+    #assert found != None
     
     id1 = identity.Identity.make_identity('a', '-a')
     id2 = identity.Identity.make_identity('a', '-[x*a]')
@@ -263,21 +271,12 @@ if __name__ == '__main__':
     id4 = identity.Identity.make_identity('x', '-[a*x]')
     id5 = identity.Identity.make_identity('x', '[-x]')
     id6 = identity.Identity.make_identity('x', 'y')
-    found = InfBunny.find([id1, id2, id3, id4, id5], id6, limit=3)
-    assert found != None
+    #found = InfBunny.find([id1, id2, id3, id4, id5], id6, limit=3)
+    #assert found != None
     
     id1 = identity.Identity.make_identity('a', '[-a]') #3
     id2 = identity.Identity.make_identity('a', '-[x*a]') #34
     id3 = identity.Identity.make_identity('x', '-[x*x]') #57
     idn = identity.Identity.make_identity('a', '[x*a]') #10
-    found = InfBunny.find([id1, id2, id3], idn, limit=4)
-    assert found != None
-    
-    id0 = identity.Identity.make_identity('a', '-[x*x]')
-    print id0.var_count
-    size = 2
-    i = 0
-    for b in bunnies(size):
-        #print b
-        #print id0
-        print b.check_id(id0, b.size)
+    #found = InfBunny.find([id1, id2, id3], idn, limit=4)
+    #assert found != None
