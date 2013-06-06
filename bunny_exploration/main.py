@@ -12,7 +12,7 @@ import identity
 import term_parser
 import reducing
 import bunny
-from prover9mace4 import *
+import prover9mace4
 
 ####SIZE = 2
 id1 = identity.Identity.make_identity('x', 'x')
@@ -161,6 +161,7 @@ def init_cxt(size):
 
 if __name__ == '__main__':
     now = time.time()
-    cxt = init_cxt(1)
+    cxt = init_cxt(2)
     print time.time() - now
-    bb = read_model('./prover9mace4/impl1_33mace4.out')
+    bb = prover9mace4.read_model('./prover9mace4/impl1_33mace4.out')
+    t_ls = identity.generate_ts(2, num_vars=2)

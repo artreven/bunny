@@ -23,7 +23,7 @@ class Identity(object):
         self.right_term = right_term
         self.var_count = max([left_term.var_count, right_term.var_count])
         
-    def __str__(self):
+    def __repr__(self):
         return str(self.left_term.name) + ' = ' + str(self.right_term.name)
     
     def __call__(self, bunny, limit):
@@ -76,11 +76,11 @@ class Term(object):
         self.name = name
         self.var_count = var_count
          
-    def __str__(self):
-        return str(self.func_str)
+    def __repr__(self):
+        return self.func_str
     
     def __eq__(self, other):
-        return str(self) == str(other)
+        return repr(self) == repr(other)
         
     @classmethod
     def str2term(cls, str_):

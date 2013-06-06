@@ -28,19 +28,19 @@ class Bunny(object):
         else:
             self.size = size
         
-    def __str__(self):
+    def __repr__(self):
         if self.size.__class__.__name__ != 'int':
             raise 'Size not int'
         size = self.size
         s = '\tBUNNY No {}'.format(self.index) + '\n'
         s += ('f2\t' + '\t'.join(map(str, range(size))) +
-             '\t\tf1' + '\t\tf0' + '\n')
+             '\t\tf1' + '\t\t\tf0' + '\n')
         for i in range(size):
             f2_vals = (self.f2_dict[i, j] for j in range(size))
             s += (str(i) + '\t' + '\t'.join(map(str, f2_vals)) +
-                  '\t\t' + str(self.f1_dict[i]))
+                  '\t\t' + str(i) + '\t' + str(self.f1_dict[i]))
             if i == 0:
-                s += '\t\t' + str(self.f0_dict)
+                s += '\t\t\t' + str(self.f0_dict)
             s += '\n'
         return s
     
