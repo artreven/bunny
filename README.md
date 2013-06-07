@@ -2,7 +2,7 @@ MIW
 ===
 Here the code I use for my PhD project Mathematical Inferential Wikipedia is stored.
 
-"bunny_exploration"
+bunny_exploration
 -------------------
 ===
 Holds the code for the attribute explorations of
@@ -11,15 +11,44 @@ called BUNnies. The formal context consists of bunnies as objects and identities
 as attributes.
 Example of bunny:
 <table>
-  <tr>
-    <td>f2</td> <th>0</th> <th>1</th> <td>		</td> <td>f1</td> <td></td> <td>		</td> <td>f0</td>
-  </tr>
-  <tr>
-    <th>0</th> <td>0</td> <td>1</td> <td>		</td> <th>0</th> <td>1</td> <td>		</td> <td>0</td>
-  </tr>
-  <tr>
-    <th>1</th> <td>0</td> <td>1</td> <td>		</td> <th>1</th> <td>0</td>
-  </tr>
+  <td>
+  <table>
+    <tr>
+      <td>f2</td> <th>0</th> <th>1</th>
+    </tr>
+    <tr>
+      <th>0</th> <td>0</td> <td>1</td>
+    </tr>
+    <tr>
+      <th>1</th> <td>0</td> <td>1</td>
+    </tr>
+  </table>
+  </td>
+  
+  <td>
+  <table>
+    <tr>
+      <td>f1</td>
+    </tr>
+    <tr>
+      <th>0</th> <td>1</td>
+    </tr>
+    <tr>
+      <th>1</th> <td>0</td>
+    </tr>
+  </table>
+  </td>
+  
+  <td>
+  <table>
+    <tr>
+      <td>f1</td>
+    </tr>
+    <tr>
+      <tв></tв> <td>0</td>
+    </tr>
+  </table>
+  </td>
 </table>
 
 Example of identity:
@@ -30,14 +59,17 @@ define the order.
 The language for building identities is described in more details in the corresponding
 module term_parser.py which holds the parser.
 
-"error_check"
+error_check
 -------------
 ===
 Holds the code for finding errors in formal objects. The
 closely debugger is inside this package. More info inside.
 
 
-"reducing"
+reducing
 ----------
 ===
 Holds function capable of clarifiyng and reducing formal contexts.
+
+===
+The polar fox is sweet, but dangerous for bunnies.
