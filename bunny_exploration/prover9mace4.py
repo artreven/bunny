@@ -46,7 +46,7 @@ def mace4(imp_ls, destination, wait_time=2):
     
                 output = (destination +
                           r'/impl{}_{}_mace4.out'.format(imp_num, count))
-                if subprocess.call('mace4 -c -t {} -f '.format(wait_time)
+                if subprocess.call('mace4 -t {} -f '.format(wait_time)
                                    + file_name + ' > ' +
                                    output, shell=True) != 0:
                     os.remove(output)
@@ -198,3 +198,11 @@ def read_all_models(dest):
     for i in MaceFiles:
         a.append( read_model(dest + r'\\' + i) )
     return a
+
+
+###############################################################################
+if __name__ == "__main__":
+    id_prem = 'x = a*(-x)'
+    id_conc = 'x = -(a*x)'
+    imp = Implication(set((id_prem, )),
+                      set((id_conc, )))
