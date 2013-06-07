@@ -17,7 +17,7 @@ class TestBunny:
                                   lambda x: 0)}
         f0 = 0
         self.id1 = bunny_exploration.identity.Identity.make_identity('x',
-                                                                     '-[x*a]')
+                                                                     '-(x*a)')
         self.id2 = bunny_exploration.identity.Identity.make_identity('x',
                                                                      'x*a')
         self.bunny = Bunny(f2_dict, f1_dict, f0, 'N')
@@ -55,7 +55,7 @@ class TestInfBunny():
                                   lambda x: 0)}
         f0 = 0
         self.id1 = bunny_exploration.identity.Identity.make_identity('x',
-                                                                     '-[x*a]')
+                                                                     '-(x*a)')
         self.id2 = bunny_exploration.identity.Identity.make_identity('x',
                                                                      'x*a')
         self.bunny = InfBunny(f2_dict, f1_dict)
@@ -69,8 +69,8 @@ class TestInfBunny():
         natural_output(self.bunny, 6)
         
     def test_find1(self):
-        id1 = bunny_exploration.identity.Identity.make_identity('x', 'a*[-x]') #45
-        id2 = bunny_exploration.identity.Identity.make_identity('x', '-[a*x]') #55
+        id1 = bunny_exploration.identity.Identity.make_identity('x', 'a*(-x)') #45
+        id2 = bunny_exploration.identity.Identity.make_identity('x', '-(a*x)') #55
         bunny_found = InfBunny.find([id1,], id2, limit=4)
         assert bunny_found != None
         #entspricht G_1 - G_351
@@ -79,8 +79,8 @@ class TestInfBunny():
         natural_output(bunny_found, 6)
         
     def test_find2(self):
-        id1 = bunny_exploration.identity.Identity.make_identity('x', 'a*[-x]') #45
-        id2 = bunny_exploration.identity.Identity.make_identity('x', '-[a*x]') #55
+        id1 = bunny_exploration.identity.Identity.make_identity('x', 'a*(-x)') #45
+        id2 = bunny_exploration.identity.Identity.make_identity('x', '-(a*x)') #55
         bunny_found = InfBunny.find([id2,], id1, limit=4)
         assert bunny_found != None
         assert bunny_found.check_id(id2, 6)
@@ -91,10 +91,10 @@ class TestInfBunny():
         natural_output(bunny_found, 6)
         
     def test_find3(self):
-        id1 = bunny_exploration.identity.Identity.make_identity('a', '[-a]') #3
-        id2 = bunny_exploration.identity.Identity.make_identity('a', '-[x*a]') #34
-        id3 = bunny_exploration.identity.Identity.make_identity('x', '-[x*x]') #57
-        idn = bunny_exploration.identity.Identity.make_identity('a', '[x*a]') #10
+        id1 = bunny_exploration.identity.Identity.make_identity('a', '(-a)') #3
+        id2 = bunny_exploration.identity.Identity.make_identity('a', '-(x*a)') #34
+        id3 = bunny_exploration.identity.Identity.make_identity('x', '-(x*x)') #57
+        idn = bunny_exploration.identity.Identity.make_identity('a', '(x*a)') #10
         #entspricht G_603 - G_618
         bunny_found = InfBunny.find([id1, id2, id3], idn, limit=4)
         assert bunny_found != None
@@ -104,12 +104,12 @@ class TestInfBunny():
         
     def test_find4(self):
         print '\ttest_find4\n'
-        id32 = bunny_exploration.identity.Identity.make_identity('a', '-[a*a]')
-        id37 = bunny_exploration.identity.Identity.make_identity('-a', '-[-a]')
-        id57 = bunny_exploration.identity.Identity.make_identity('x', '-[x*x]')
+        id32 = bunny_exploration.identity.Identity.make_identity('a', '-(a*a)')
+        id37 = bunny_exploration.identity.Identity.make_identity('-a', '-(-a)')
+        id57 = bunny_exploration.identity.Identity.make_identity('x', '-(x*x)')
         id1 = bunny_exploration.identity.Identity.make_identity('x', 'x')
-        id22 = bunny_exploration.identity.Identity.make_identity('a', 'a*[-[a]]')
-        id24 = bunny_exploration.identity.Identity.make_identity('a', '[-a]*a]')
+        id22 = bunny_exploration.identity.Identity.make_identity('a', 'a*(-(a))')
+        id24 = bunny_exploration.identity.Identity.make_identity('a', '(-a)*a')
         idn = bunny_exploration.identity.Identity.make_identity('x', 'y')
         #entspricht G_603 - G_618
         bunny_found = InfBunny.find([id1, id22, id24, id32, id37, id57], idn, limit=4)

@@ -10,7 +10,7 @@ from bunny_exploration.identity import *
 
 def test_make_identity():
     left_str = 'x'
-    right_str = '-[a*x]'
+    right_str = '-(a*x)'
     iden = Identity.make_identity(left_str, right_str)
     left_term = Term.parsed2term(bunny_exploration.term_parser.parse_str(left_str))
     right_term = Term.parsed2term(bunny_exploration.term_parser.parse_str(right_str))
@@ -22,7 +22,7 @@ def test_make_identity():
     
 def test_term():
     str1 = 'x'
-    str2 = '-[x*a]'
+    str2 = '-(x*a)'
     t1 = Term.parsed2term(bunny_exploration.term_parser.parse_str(str1))
     t2 = Term.parsed2term(bunny_exploration.term_parser.parse_str(str2))
     print 't1: ', t1
@@ -32,8 +32,8 @@ def test_term():
     
 def test_parsed2term():
     str1 = 'x'
-    str2 = '-[x*a]'
-    str3 = '[a*[-x]]*[-y]'
+    str2 = '-(x*a)'
+    str3 = '(a*(-x))*(-y)'
     t1 = Term.parsed2term(bunny_exploration.term_parser.parse_str(str1))
     t2 = Term.parsed2term(bunny_exploration.term_parser.parse_str(str2))
     t3 = Term.parsed2term(bunny_exploration.term_parser.parse_str(str3))
@@ -49,7 +49,7 @@ def test_evaluate_term():
     f0 = 0
     bun = bunny_exploration.bunny.Bunny(f2_dict, f1_dict, f0, 'N')
     str1 = 'x'
-    str2 = '-[x*a]'
+    str2 = '-(x*a)'
     t1 = Term.parsed2term(bunny_exploration.term_parser.parse_str(str1))
     t2 = Term.parsed2term(bunny_exploration.term_parser.parse_str(str2))
     assert t1(bun, [0, 0, 0, 0]) == 0
@@ -59,12 +59,12 @@ def test_evaluate_term():
     
 def test_str2term():
     str1 = 'x'
-    str2 = '-[x*a]'
+    str2 = '-(x*a)'
     assert Term.str2term(str1).func_str == 'x'
     assert Term.str2term(str2).func_str == 'f1(f2(x,f0))'
     
 def test_generate_ts():
     # term_parser.parse_str('a*[-x]') := ('a*[-x]', 2, 3, [0, 0], [2, 3, 1], [0, 2, 1])
-    t0 = Term.str2term('a*[-x]')
+    t0 = Term.str2term('a*(-x)')
     assert (t0 in generate_ts(4))
     assert (t0 not in generate_ts(2))

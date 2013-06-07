@@ -4,9 +4,9 @@ class TestParser:
     @classmethod
     def setup_class(self):
         self.text1 = "-x*a"
-        self.text2 = "[-x]*[a*z]"
-        self.text3 = "-[x*a]"
-        self.text4 = "-[-x]*a"
+        self.text2 = "(-x)*(a*z)"
+        self.text3 = "-(x*a)"
+        self.text4 = "-(-x)*a"
         self.text5 = "x"
         self.parsed = term_parse(self.text1)[0]
         
@@ -16,9 +16,9 @@ class TestParser:
     
     def test_parser(self):
         assert parse_str(self.text1) == ('-x*a', 2, 3, [0, 0], [1, 3, 1], [1, 2, 0])
-        assert parse_str(self.text2) == ('[-x]*[a*z]', 3, 4, [0, 0, 2], [3, 5, 1, 2], [1, 2, 0, 2])
-        assert parse_str(self.text3) == ('-[x*a]', 2, 3, [0, 0], [5, 3, 1], [1, 2, 0])
-        assert parse_str(self.text4) == ('-[-x]*a', 2, 4, [0, 0], [3, 1, 4, 1], [1, 1, 2, 0])
+        assert parse_str(self.text2) == ('(-x)*(a*z)', 3, 4, [0, 0, 2], [3, 5, 1, 2], [1, 2, 0, 2])
+        assert parse_str(self.text3) == ('-(x*a)', 2, 3, [0, 0], [5, 3, 1], [1, 2, 0])
+        assert parse_str(self.text4) == ('-(-x)*a', 2, 4, [0, 0], [3, 1, 4, 1], [1, 1, 2, 0])
         assert parse_str(self.text5) == ('x', 1, 0, [0], [], [])
         
     def test_flatten(self):
@@ -35,7 +35,7 @@ class TestParser:
     def test_make_input(self):
         assert (make_input(True, self.text1, self.text3)
                 == ['2', '-x*a', '2', '3', '0', '0', '1', '3', '1', '1', '2',
-                    '0', '-[x*a]', '2', '3', '0', '0', '5', '3', '1', '1', '2', '0'])
+                    '0', '-(x*a)', '2', '3', '0', '0', '5', '3', '1', '1', '2', '0'])
         assert (make_input(False, self.text1, self.text3)
                 == ['2', '2', '3', '0', '0', '1', '3', '1', '1', '2', '0', '2',
                     '3', '0', '0', '5', '3', '1', '1', '2', '0'])

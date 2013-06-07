@@ -89,7 +89,7 @@ def parse(start_symbol, text, grammar):
 Fail = (None, None)
 
 term_grammar = grammar("""val => exp bin val | exp
-exp => sym bin exp | [[] exp []] | un exp | sym
+exp => sym bin exp | [(] exp [)] | un exp | sym
 bin => [*]
 un => -
 sym => var | nul
