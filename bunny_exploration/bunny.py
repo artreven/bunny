@@ -12,7 +12,7 @@ class Bunny(object):
     General Bunny class, superclass for fin_bunny and inf_bunny
     '''
     
-    def __init__(self, f2_dict, f1_dict, f0_dict, index, size=None):
+    def __init__(self, f2_dict, f1_dict, f0_dict, index=None, size=None):
         '''
         Constructor
         '''
@@ -22,15 +22,21 @@ class Bunny(object):
         self.f2 = _generate_f2(f2_dict)
         self.f1 = _generate_f1(f1_dict)
         self.f0 = f0_dict
-        self.index = index
         if size == None:
             self.size = len(self.f1_dict)
         else:
             self.size = size
+        if index == None:
+            if isinstance(self.size, int):
+                self.index = _index(f2_dict, f1_dict, f0_dict, size)
+            else:
+                self.index = 'N/A'
+        else:
+            self.index = index
         
     def __repr__(self):
         if self.size.__class__.__name__ != 'int':
-            raise 'Size not int'
+            raise Exception('Size not int')
         size = self.size
         s = '\tBUNNY No {}'.format(self.index) + '\n'
         s += ('f2\t' + '\t'.join(map(str, range(size))) +
@@ -70,9 +76,13 @@ class InfBunny(Bunny):
         Constructor
         '''
         super(InfBunny, self).__init__(f2_dict, f1_dict, 0, 'N/A', 'Inf')
-        
-    def __str__(self):
-        raise 'NotImplementedYet'
+    
+    def __repr__(self):
+        s = '\n\tINFINITE BUNNY\n'
+        s += (str(self.f2_dict) + '\n')
+        s += (str(self.f1_dict) + '\n')
+        s += (str(0) + '\n')
+        return s
         
     @classmethod
     def find(cls, id_pos_ls, id_neg, limit):
@@ -171,9 +181,12 @@ def inf_bunnies(id_pos_ls, id_neg):
                'condition2': (lambda m, n: (m in [0,1]) and (n >= 2), 
                               lambda m, n: a2*m + b2*n + c2,
                               '{0}*m + {1}*n + {2}'.format(a2, b2, c2)),
-               'condition3': (lambda m, n: (m >= 2) and (n >= 2),
+               'condition3': (lambda m, n: (m == n),
                               lambda m, n: a3*m + b3*n + c3,
-                              '{0}*m + {1}*n + {2}'.format(a3, b3, c3))},
+                              '{0}*m + {1}*n + {2}'.format(a3, b3, c3)),
+               'condition4': (lambda m, n: (m >= 2) and (n >= 2),
+                              lambda m, n: a4*m + b4*n + c4,
+                              '{0}*m + {1}*n + {2}'.format(a4, b4, c4))},
               
               {0: u0, 1: u1,
                'condition1': (lambda n: n>0,
@@ -182,15 +195,7 @@ def inf_bunnies(id_pos_ls, id_neg):
              
              for d1 in [0, 1, 2]
              for e1 in [0, 1, -1, 2, -2]
-             if (d1*2 + e1 >= 0)           
-             
-             for a3 in [0, 1]
-             for b3 in [0, 1]
-             for c3 in [0, 1, -1, 2, -2, 3, -3]
-             if (a3*2 + b3*2 + c3 >= 0)
-             if all([constrs[i].subs({a: a3, b: b3, c: c3, d: d1, e: e1}) ==
-                     i.subs({a: a3, b: b3, c: c3, d: d1, e: e1})
-                     for i in constrs.keys()])
+             if (d1*2 + e1 >= 0)
              
              for a1 in [0, 1]
              for b1 in [0, 1]
@@ -208,13 +213,30 @@ def inf_bunnies(id_pos_ls, id_neg):
                      i.subs({a: a2, b: b2, c: c2, d: d1, e: e1})
                      for i in constrs.keys()])
              
-             for b00 in range(2)
-             for b10 in range(3)
-             for b01 in range(3)
-             for b11 in range(3)
+             for a3 in [0, 1]
+             for b3 in [0, 1]
+             for c3 in [0, 1, -1, 2, -2, 3, -3]
+             if (a3*2 + b3*2 + c3 >= 0)
+             if all([constrs[i].subs({a: a3, b: b3, c: c3, d: d1, e: e1}) ==
+                     i.subs({a: a3, b: b3, c: c3, d: d1, e: e1})
+                     for i in constrs.keys()])
              
-             for u0 in range(2)
-             for u1 in range(2))
+             for a4 in [0, 1]
+             for b4 in [0, 1]
+             for c4 in [0, 1, -1, 2, -2, 3, -3]
+             if (a4*3 + b4*2 + c4 >= 0)
+             if (a4*2 + b4*3 + c4 >= 0)
+             if all([constrs[i].subs({a: a4, b: b4, c: c4, d: d1, e: e1}) ==
+                     i.subs({a: a4, b: b4, c: c4, d: d1, e: e1})
+                     for i in constrs.keys()])
+             
+             for b00 in range(3)
+             for b10 in range(4)
+             for b01 in range(4)
+             for b11 in range(4)
+             
+             for u0 in range(3)
+             for u1 in range(4))
     
     for f2_dict, f1_dict in all_f:
         yield InfBunny(f2_dict, f1_dict)
@@ -255,7 +277,24 @@ def show(index, size):
                      for i in range(size)])
     f0 = v0
     return Bunny(f2_dict, f1_dict, f0, index)
-    
+
+def _index(f2_dict, f1_dict, f0_dict, size):
+    """
+    Find index given f2, f1, f0, and size
+    """
+    #calc v2
+    v2 = 0
+    for i in range(size):
+        for j in range(size):
+            v2 += f2_dict[(i, j)] * size**(j + size*i)
+    #calc v1
+    v1 = 0
+    for i in range(size):
+        v1 += f1_dict[i] * size**i
+    #v0 is just f0_dict=f0
+    v0 = f0_dict
+            
+    return (v2 + v1*(size ** (size**2)) + v0*(size ** (size**2 + size)))
         
 ########################################################
 def nth(iterable, n, default=None):
@@ -266,28 +305,31 @@ def nth(iterable, n, default=None):
 if __name__ == '__main__':
     import time
     
-    now = time.time()
-    for _ in bunnies(2):
-        pass
-    print time.time() - now
-    
-    id1 = identity.Identity.make_identity('x', 'a*[-x]') #45
-    id2 = identity.Identity.make_identity('x', '-[a*x]') #55
+    id1 = identity.Identity.make_identity('x', 'a*(-x)') #45
+    id2 = identity.Identity.make_identity('x', '-(a*x)') #55
     #found = InfBunny.find([id1,], id2, limit=6)
     #assert found != None
     
     id1 = identity.Identity.make_identity('a', '-a')
-    id2 = identity.Identity.make_identity('a', '-[x*a]')
-    id3 = identity.Identity.make_identity('x', '-[x*x]')
-    id4 = identity.Identity.make_identity('x', '-[a*x]')
-    id5 = identity.Identity.make_identity('x', '[-x]')
+    id2 = identity.Identity.make_identity('a', '-(x*a)')
+    id3 = identity.Identity.make_identity('x', '-(x*x)')
+    id4 = identity.Identity.make_identity('x', '-(a*x)')
+    id5 = identity.Identity.make_identity('x', '(-x)')
     id6 = identity.Identity.make_identity('x', 'y')
     #found = InfBunny.find([id1, id2, id3, id4, id5], id6, limit=3)
     #assert found != None
     
-    id1 = identity.Identity.make_identity('a', '[-a]') #3
-    id2 = identity.Identity.make_identity('a', '-[x*a]') #34
-    id3 = identity.Identity.make_identity('x', '-[x*x]') #57
-    idn = identity.Identity.make_identity('a', '[x*a]') #10
+    id1 = identity.Identity.make_identity('a', '(-a)') #3
+    id2 = identity.Identity.make_identity('a', '-(x*a)') #34
+    id3 = identity.Identity.make_identity('x', '-(x*x)') #57
+    idn = identity.Identity.make_identity('a', '(x*a)') #10
     #found = InfBunny.find([id1, id2, id3], idn, limit=4)
+    #assert found != None
+    
+    id1 = identity.Identity.make_identity('x', 'a*(-x)') #45
+    id2 = identity.Identity.make_identity('a', '-(a*a)') #32
+    now = time.time()
+    found = InfBunny.find([id1,], id2, limit=6)
+    print time.time() - now
+    print found
     #assert found != None

@@ -22,7 +22,6 @@ def mace4(imp_ls, destination, wait_time=2):
     eol = 'end_of_list.\n\n'
     N = 0
     
-    #for obj in dict_obj_imps:
     imp_num = 0
     unit_imps = 0
     for imp in imp_ls:
@@ -55,11 +54,14 @@ def mace4(imp_ls, destination, wait_time=2):
             os.remove(file_name)
     return N
 
-def prover9(dict_obj_imps, destination, wait_time=2):
+def prover9(imp_ls, destination, wait_time=2):
     """
-    Runs Prover9 with dict_obj_imps.values() as theorems to prove.
-    Result is written in destination in many files!
-    Proved, not proved and dict_obj_imps in unit form are returned.
+    Runs Prover9 with implications as theorems to reject.
+    Result is written in many files!
+    
+    @param destination: where output file of mace4 go
+    @param wait_time: time constraint for mace4
+    @return: list of proven atomic imps, list of not proven atomic imps
     """
     sos = 'formulas(sos).\n'
     goals = 'formulas(goals).\n'
@@ -67,41 +69,38 @@ def prover9(dict_obj_imps, destination, wait_time=2):
     Proved = []
     NotProved = []
     
-    for obj in dict_obj_imps:
-        ImplNum = 0
-        unit_imps = 0
-        for imp in dict_obj_imps[obj]:
-            ImplNum += 1
-            count = 0
-            for j in (imp.conclusion - imp.premise):
-                count += 1
-                unit_imps += 1
-                InFileName = (destination +
-                              r'/obj{}_impl{}_{}.in'.format(obj, ImplNum, count))
-                InputFile = open(InFileName, 'w')
-                InputFile.write(sos)
-                for k in imp.premise:
-                    InputFile.write('\t' + str(k) + '.\n')
-                InputFile.write(eol)
-    
-                InputFile.write(goals)
-                InputFile.write('\t' + str(j) + '.\n')
-                InputFile.write(eol)
-                InputFile.close()
-    
-                ProvOutput = (destination +
-                              r'/obj{}_impl{}_{}.prover9.out'.format(obj, ImplNum, count))
-                if subprocess.call('prover9 -t {} -f '.format(wait_time) +
-                                   InFileName + ' > ' +
-                                   ProvOutput, shell=True) != 0:
-                    os.remove(ProvOutput)
-                    NotProved.append('obj{}_impl{}_{}'.format(obj, ImplNum, count))
-                else:
-                    wset = set()
-                    wset.add(j)
-                    Proved.append(Implication(imp.premise, wset))
-                InputFile.close()
-                os.remove(InFileName)
+    imp_num = 0
+    unit_imps = 0
+    for imp in imp_ls:
+        imp_num += 1
+        count = 0
+        for j in (imp.conclusion - imp.premise):
+            count += 1
+            unit_imps += 1
+            InFileName = (destination +
+                          r'/impl{}_{}.in'.format(imp_num, count))
+            InputFile = open(InFileName, 'w')
+            InputFile.write(sos)
+            for k in imp.premise:
+                InputFile.write('\t' + str(k) + '.\n')
+            InputFile.write(eol)
+
+            InputFile.write(goals)
+            InputFile.write('\t' + str(j) + '.\n')
+            InputFile.write(eol)
+            InputFile.close()
+
+            ProvOutput = (destination +
+                          r'/impl{}_{}.prover9.out'.format(imp_num, count))
+            if subprocess.call('prover9 -t {} -f '.format(wait_time) +
+                               InFileName + ' > ' +
+                               ProvOutput, shell=True) != 0:
+                os.remove(ProvOutput)
+                NotProved.append(Implication(imp.premise, set((j,))))
+            else:
+                Proved.append(Implication(imp.premise, set((j,))))
+            InputFile.close()
+            os.remove(InFileName)
     return Proved, NotProved
 
 
@@ -196,7 +195,7 @@ def read_all_models(dest):
             MaceFiles.append(i)
     a = []
     for i in MaceFiles:
-        a.append( read_model(dest + r'\\' + i) )
+        a.append( read_model(dest + r'/' + i) )
     return a
 
 

@@ -29,6 +29,15 @@ class TestBunny:
     def test_check_id(self):
         assert not self.bunny.check_id(self.id1, 20)
         assert self.bunny.check_id(self.id2, 20)
+    
+    def test_index(self):
+        bun2 = bunnies(2)
+        for b in bun2:
+            assert (b.index ==
+                    bunny_exploration.bunny._index(b.f2_dict, b.f1_dict, b.f0_dict, b.size))
+        ind = 50
+        b = show(ind, 3)
+        assert bunny_exploration.bunny._index(b.f2_dict, b.f1_dict, b.f0_dict, 3) == ind
         
         
 def natural_output(bunny, limit):

@@ -1,0 +1,39 @@
+x = a*(-x), x = -(a*x), a = -(a*a)
+	BUNNY No 0
+f2			f1			f0
+, 	BUNNY No 33
+f2	0	1		f1			f0
+0	1	0		0	0			0
+1	0	0		1	1
+, 	BUNNY No 1
+f2	0	1		f1			f0
+0	1	0		0	0			0
+1	0	0		1	0
+, 	BUNNY No 33
+f2	0	1		f1			f0
+0	1	0		0	0			0
+1	0	0		1	1
+, 
+	INFINITE BUNNY
+{(0, 1): 1, (0, 0): 0, (1, 0): 0, 'condition4': (<function <lambda> at 0x2d98c80>, <function <lambda> at 0x2d98cf8>, '0*m + 1*n + 1'), 'condition3': (<function <lambda> at 0x2d98758>, <function <lambda> at 0x2d98c08>, '0*m + 1*n + 1'), (1, 1): 0, 'condition1': (<function <lambda> at 0x2d98848>, <function <lambda> at 0x2d982a8>, '0*m + 1*n + 1'), 'condition2': (<function <lambda> at 0x2d98320>, <function <lambda> at 0x2d98398>, '0*m + 1*n + 1')}
+{0: 0, 1: 1, 'condition1': (<function <lambda> at 0x2d98230>, <function <lambda> at 0x2d981b8>, '1*n + -1')}
+0
+, 
+	INFINITE BUNNY
+{(0, 1): 0, (0, 0): 0, (1, 0): 0, 'condition4': (<function <lambda> at 0x2d8fd70>, <function <lambda> at 0x2d8fed8>, '0*m + 1*n + -1'), 'condition3': (<function <lambda> at 0x2d8fb18>, <function <lambda> at 0x2d8fe60>, '0*m + 1*n + -1'), (1, 1): 0, 'condition1': (<function <lambda> at 0x2d8fc80>, <function <lambda> at 0x2d8f0c8>, '1*m + 1*n + -1'), 'condition2': (<function <lambda> at 0x2d8f6e0>, <function <lambda> at 0x2d8ff50>, '0*m + 1*n + -1')}
+{0: 1, 1: 2, 'condition1': (<function <lambda> at 0x2d8fde8>, <function <lambda> at 0x2d8f140>, '1*n + 1')}
+0
+, 
+	INFINITE BUNNY
+{(0, 1): 0, (0, 0): 0, (1, 0): 0, 'condition4': (<function <lambda> at 0x2d98aa0>, <function <lambda> at 0x2d987d0>, '0*m + 1*n + -1'), 'condition3': (<function <lambda> at 0x2d98938>, <function <lambda> at 0x2d98b90>, '0*m + 1*n + -1'), (1, 1): 0, 'condition1': (<function <lambda> at 0x2d98b18>, <function <lambda> at 0x2d98de8>, '1*m + 1*n + -1'), 'condition2': (<function <lambda> at 0x2d98a28>, <function <lambda> at 0x2d98ed8>, '0*m + 1*n + -1')}
+{0: 0, 1: 2, 'condition1': (<function <lambda> at 0x2d98e60>, <function <lambda> at 0x2d98f50>, '1*n + 1')}
+0
+
+XXX
+...
+..X
+...
+.XX
+X..
+X.X
+

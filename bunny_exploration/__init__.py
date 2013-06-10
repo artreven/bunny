@@ -1,6 +1,5 @@
 from identity import *
-from prover9mace4 import *
-from tab_separated_objs_names import *
+from p9m4 import *
 from term_parser import *
 from bunny import *
 from ae import *

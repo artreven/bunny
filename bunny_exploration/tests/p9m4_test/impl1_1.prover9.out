@@ -1,0 +1,108 @@
+============================== Prover9 ===============================
+Prover9 (64) version 2009-02A, February 2009.
+Process 22719 was started by artreven on artreven-PORTEGE-Z835,
+Mon Jun 10 12:40:25 2013
+The command was "prover9 -t 2 -f /home/artreven/Dropbox/personal/Scripts/AptanaWorkspace/MIW/bunny_exploration/tests/p9m4_test/impl1_1.in".
+============================== end of head ===========================
+
+============================== INPUT =================================
+
+% Reading from file /home/artreven/Dropbox/personal/Scripts/AptanaWorkspace/MIW/bunny_exploration/tests/p9m4_test/impl1_1.in
+
+
+formulas(sos).
+x = -(a * x).
+end_of_list.
+
+formulas(goals).
+a = -(a * a).
+end_of_list.
+
+============================== end of input ==========================
+
+% From the command line: assign(max_seconds, 2).
+
+============================== PROCESS NON-CLAUSAL FORMULAS ==========
+
+% Formulas that are not ordinary clauses:
+1 a = -(a * a) # label(non_clause) # label(goal).  [goal].
+
+============================== end of process non-clausal formulas ===
+
+============================== PROCESS INITIAL CLAUSES ===============
+
+% Clauses before input processing:
+
+formulas(usable).
+end_of_list.
+
+formulas(sos).
+x = -(a * x).  [assumption].
+-(a * a) != a.  [deny(1)].
+end_of_list.
+
+formulas(demodulators).
+end_of_list.
+
+============================== PREDICATE ELIMINATION =================
+
+No predicates eliminated.
+
+============================== end predicate elimination =============
+
+Auto_denials:  (no changes).
+
+Term ordering decisions:
+Predicate symbol precedence:  predicate_order([ = ]).
+Function symbol precedence:  function_order([ a, *, - ]).
+After inverse_order:  (no changes).
+Unfolding symbols: (none).
+
+Auto_inference settings:
+  % set(paramodulation).  % (positive equality literals)
+
+Auto_process settings:  (no changes).
+
+           2 x = -(a * x).  [assumption].
+kept:      3 -(a * x) = x.  [copy(2),flip(a)].
+           4 -(a * a) != a.  [deny(1)].
+
+============================== PROOF =================================
+
+% Proof 1 at 0.00 (+ 0.00) seconds.
+% Length of proof is 5.
+% Level of proof is 2.
+% Maximum clause weight is 6.
+% Given clauses 0.
+
+1 a = -(a * a) # label(non_clause) # label(goal).  [goal].
+2 x = -(a * x).  [assumption].
+3 -(a * x) = x.  [copy(2),flip(a)].
+4 -(a * a) != a.  [deny(1)].
+5 $F.  [copy(4),rewrite([3(4)]),xx(a)].
+
+============================== end of proof ==========================
+
+============================== STATISTICS ============================
+
+Given=0. Generated=2. Kept=1. proofs=1.
+Usable=0. Sos=0. Demods=1. Limbo=1, Disabled=2. Hints=0.
+Kept_by_rule=0, Deleted_by_rule=0.
+Forward_subsumed=0. Back_subsumed=0.
+Sos_limit_deleted=0. Sos_displaced=0. Sos_removed=0.
+New_demodulators=1 (0 lex), Back_demodulated=0. Back_unit_deleted=0.
+Demod_attempts=6. Demod_rewrites=1.
+Res_instance_prunes=0. Para_instance_prunes=0. Basic_paramod_prunes=0.
+Nonunit_fsub_feature_tests=0. Nonunit_bsub_feature_tests=0.
+Megabytes=0.02.
+User_CPU=0.00, System_CPU=0.00, Wall_clock=0.
+
+============================== end of statistics =====================
+
+============================== end of search =========================
+
+THEOREM PROVED
+
+Exiting with 1 proof.
+
+Process 22719 exit (max_proofs) Mon Jun 10 12:40:25 2013
