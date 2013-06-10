@@ -114,6 +114,9 @@ def constraints(id_ls):
         return sym_str
     
     a, b, c, d, e = sympy.symbols('a, b, c, d, e')
+    # TODO: do it better for the case id_ls == []
+    if not id_ls:
+        return ([{a: a},], [])
     f0 = sympy.symbols('f0')
     f1 = sympy.Function('f1')
     f2 = sympy.Function('f2')

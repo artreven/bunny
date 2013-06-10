@@ -136,22 +136,30 @@ class AE(object):
         #limit for checking the infinite bunnies
         limit = 10
         ce_dict = {}
+        fin = 0
         N = 0
         for imp in self.basis:
             for j in imp.conclusion:
                 atomic_imp = fca.Implication(imp.premise, set((j,)))
                 found = be.mace4((atomic_imp,), self.dest)
                 if found == 1:
+                    fin += 1
                     bun = be.read_model(self.dest + '/impl1_1_mace4.out')
                     os.remove(self.dest + '/impl1_1_mace4.out')
                 elif found == 0:
+                    (proved, _) = be.prover9((atomic_imp,), self.dest, 1)
+                    if len(proved) == 1:
+                        os.remove(self.dest + '/impl1_1.prover9.out')
+                        continue
                     bun = be.InfBunny.find(imp.premise, j, limit)
                 ce_dict[atomic_imp] = bun
                 if (add == True) and (bun != None):
+                    N += 1
                     self.add_object([bun.check_id(id_, limit)
                                      for id_ in self.cxt.attributes],
                                     bun)
-        return ce_dict
+        inf = N - fin
+        return ce_dict, fin, inf
     
     def run(self, step=0):
         """
@@ -161,18 +169,28 @@ class AE(object):
         if self.basis == None:
             self.basis = self.find_basis()
         m = '\n\n\n\tStep {} \n'.format(step + 1)
-        m += 'Canonical basis consists of {} implications\n'.format(len(self.basis))
-        m += 'There were {} objects in context before the start of this step\n'.format(len(self.cxt.objects))
-        ce_dict = self.find_ces()
+        m += 'Canonical basis consists of {} implications, '.format(len(self.basis))
+        ce_dict, fin, inf = self.find_ces()
         N = len(filter(lambda x: x != None, ce_dict.values()))
-        m += 'There were {} counter-examples found on this step\n'.format(N)
+        m += 'or {} atomic implications\n'.format(len(ce_dict.values()))
+        m += 'There were {} objects in context before the start of this step\n'.format(len(self.cxt.objects))
+        m += 'There were {} counter-examples found on this step, '.format(N)
+        m += 'of which {} finite and {} infinite\n'.format(fin, inf)
+        m += '{} atomic implications were not rejected\n'.format(len(ce_dict.values()) - N)
+        self.cxt.reduce_objects()
+        m += '{} Objects left after reducing\n'.format(len(self.cxt.objects))
         print m
         m += str(ce_dict)
+        # Remove progress left from previous runs
         if step == 0:
-            os.remove(self.dest + '/progress.txt')
+            try:
+                os.remove(self.dest + '/progress.txt')
+            except OSError:
+                pass
         with open(self.dest + '/progress.txt', 'a') as file:
             file.write(m)
         file.close()
+        # if no CE found try to prove
         if (not any(ce_dict.values())):
             self._output_basis()
             self._output_cxt()
@@ -186,6 +204,7 @@ class AE(object):
                     file.write(str(imp) + '\n')
             file.close()
             return (proved, not_proved)
+        # if CE found proceed to next step
         return self.run(step + 1)
     
     
