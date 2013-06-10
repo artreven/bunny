@@ -47,8 +47,8 @@ class Test:
             if i[1] != None:
                 N += 1
         assert N >= 0
-        assert len(self.ae.cxt.objects) == 6 
+        assert len(self.ae.cxt.objects) >= 4 
         assert self.ae.basis == None
         
     def test_run(self):
-        print self.ae.run()
+        assert map(len, self.ae.run()) == [1, 0]

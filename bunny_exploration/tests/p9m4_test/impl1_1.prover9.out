@@ -1,7 +1,7 @@
 ============================== Prover9 ===============================
 Prover9 (64) version 2009-02A, February 2009.
-Process 22719 was started by artreven on artreven-PORTEGE-Z835,
-Mon Jun 10 12:40:25 2013
+Process 18993 was started by artreven on artreven-PORTEGE-Z835,
+Mon Jun 10 17:06:00 2013
 The command was "prover9 -t 2 -f /home/artreven/Dropbox/personal/Scripts/AptanaWorkspace/MIW/bunny_exploration/tests/p9m4_test/impl1_1.in".
 ============================== end of head ===========================
 
@@ -105,4 +105,4 @@ THEOREM PROVED
 
 Exiting with 1 proof.
 
-Process 22719 exit (max_proofs) Mon Jun 10 12:40:25 2013
+Process 18993 exit (max_proofs) Mon Jun 10 17:06:00 2013

@@ -61,8 +61,9 @@ class Bunny(object):
         
         @param limit: checks up to this limit
         '''
-        if limit == None:
+        if isinstance(self.size, int):
             limit = self.size
+        assert limit != None
         return id_(self, limit)
        
         

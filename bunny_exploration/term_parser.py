@@ -51,7 +51,7 @@ def memo(f):
             return result
         except TypeError:
             # some element of args can't be a dict key
-            return f(args)
+            return f(*args)
     return _f
 
 def parse(start_symbol, text, grammar):

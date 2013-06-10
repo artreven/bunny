@@ -20,15 +20,15 @@ class TestBunny:
                                                                      '-(x*a)')
         self.id2 = bunny_exploration.identity.Identity.make_identity('x',
                                                                      'x*a')
-        self.bunny = Bunny(f2_dict, f1_dict, f0, 'N')
+        self.bunny = Bunny(f2_dict, f1_dict, f0, 'N', 'Inf')
 
     def tearDown(self):
         pass
 
 
     def test_check_id(self):
-        assert not self.bunny.check_id(self.id1, 20)
-        assert self.bunny.check_id(self.id2, 20)
+        assert not self.bunny.check_id(self.id1, 10)
+        assert self.bunny.check_id(self.id2, 10)
     
     def test_index(self):
         bun2 = bunnies(2)

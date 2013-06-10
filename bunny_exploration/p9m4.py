@@ -6,9 +6,11 @@ import os
 
 from fca import Implication
 
-import bunny
+import bunny_exploration as be
+from bunny_exploration.term_parser import memo
 
-def mace4(imp_ls, destination, wait_time=2):
+@memo
+def mace4(imp_ls, destination, wait_time=1):
     """
     Runs Mace4 with implications as theorems to reject.
     Result is written in many files!
@@ -184,7 +186,7 @@ def read_model(path):
                 NumN = N = int(i)
     # prepare return and return
     index = NumB + NumU*(Dom ** (Dom**2)) + NumN*(Dom ** (Dom**2 + Dom))
-    bun = bunny.Bunny(B, U, N, index)
+    bun = be.Bunny(B, U, N, index)
     return bun
 
 def read_all_models(dest):
