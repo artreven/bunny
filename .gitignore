@@ -1,7 +1,7 @@
 *.py[cod]
 *.log
 .settings
-bunny_exploration/prover9mace4
+bunny_exploration/70ids_size_leq_5
 
 # C extensions
 *.so

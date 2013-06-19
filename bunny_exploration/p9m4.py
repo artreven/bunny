@@ -45,7 +45,7 @@ def mace4(imp_ls, destination, wait_time=1):
     
                 output = (destination +
                           r'/impl{}_{}_mace4.out'.format(imp_num, count))
-                if subprocess.call('mace4 -t {} -N 100 -f '.format(wait_time)
+                if subprocess.call('mace4 -t {} -N 25 -f '.format(wait_time)
                                    + file_name + ' > ' +
                                    output, shell=True) != 0:
                     os.remove(output)

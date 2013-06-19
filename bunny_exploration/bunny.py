@@ -116,7 +116,7 @@ def constraints(id_ls):
     a, b, c, d, e = sympy.symbols('a, b, c, d, e')
     # TODO: do it better for the case id_ls == []
     if not id_ls:
-        return ([{a: a},], [])
+        return [{a: a},]
     f0 = sympy.symbols('f0')
     f1 = sympy.Function('f1')
     f2 = sympy.Function('f2')
@@ -134,7 +134,11 @@ def constraints(id_ls):
         right_repl = replace(replace(make_sym(id_.right_term.func_str),
                                      pattern1), pattern2)
         eq_ls.append(left_repl - right_repl)
-    return sympy.solve(eq_ls, a, b, c, d, e, dict=True), eq_ls
+    try:
+        sol = sympy.solve(eq_ls, a, b, c, d, e, dict=True)
+    except NotImplementedError:
+        sol = [{a: a},]
+    return sol
 
 def _generate_f2(dict_values):
     '''
@@ -174,7 +178,7 @@ def inf_bunnies(id_pos_ls, id_neg):
     Some bunnies that satisfy may be not found!
     '''
     a, b, c, d, e, m, n = sympy.symbols('a, b, c, d, e, m, n')
-    constrs = constraints(id_pos_ls)[0][0]
+    constrs = constraints(id_pos_ls)[0]
     
     f0 = 0
     all_f = (({(0,0): b00, (0,1): b01,

@@ -5,10 +5,10 @@ Created on May 13, 2013
 '''
 import time
 import cProfile
+import os
 
 import fca
 
-import reducing
 import bunny_exploration as be
 
 ####SIZE = 2
@@ -154,12 +154,13 @@ def init_cxt(size):
         row = [bun.check_id(id_) for id_ in id_ls]
         table.append(row)
     cxt = fca.Context(table, obj_ls, att_ls)
-    return cxt
+    return cxt.reduce_objects()
 
 if __name__ == '__main__':
     now = time.time()
     cxt = init_cxt(2)
-    dest = '/home/artreven/Dropbox/personal/Scripts/AptanaWorkspace/MIW/bunny_exploration/70ids_size_leq_5'
+    dest = '/home/artreven/Dropbox/personal/Scripts/AptanaWorkspace/MIW/bunny_exploration/70ids_leq5_2'
+    if not os.path.exists(dest): os.makedirs(dest)
     ae = be.AE(cxt, dest)
     ae.run()
     print time.time() - now

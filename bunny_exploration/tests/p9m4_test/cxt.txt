@@ -1,39 +1,39 @@
 x = a*(-x), x = -(a*x), a = -(a*a)
 	BUNNY No 0
 f2			f1			f0
+, 	BUNNY No 33
+f2	0	1		f1			f0
+0	1	0		0	0			0
+1	0	0		1	1
+, 	BUNNY No 33
+f2	0	1		f1			f0
+0	1	0		0	0			0
+1	0	0		1	1
 , 	BUNNY No 1
 f2	0	1		f1			f0
 0	1	0		0	0			0
 1	0	0		1	0
-, 	BUNNY No 33
-f2	0	1		f1			f0
-0	1	0		0	0			0
-1	0	0		1	1
-, 	BUNNY No 33
-f2	0	1		f1			f0
-0	1	0		0	0			0
-1	0	0		1	1
 , 
 	INFINITE BUNNY
-{(0, 1): 1, (0, 0): 0, (1, 0): 0, 'condition4': (<function <lambda> at 0x28e17d0>, <function <lambda> at 0x28e1758>, '0*m + 1*n + 1'), 'condition3': (<function <lambda> at 0x28e18c0>, <function <lambda> at 0x28e1848>, '0*m + 1*n + 1'), (1, 1): 0, 'condition1': (<function <lambda> at 0x28e1aa0>, <function <lambda> at 0x28e1a28>, '0*m + 1*n + 1'), 'condition2': (<function <lambda> at 0x28e19b0>, <function <lambda> at 0x28e1938>, '0*m + 1*n + 1')}
-{0: 0, 1: 1, 'condition1': (<function <lambda> at 0x28e16e0>, <function <lambda> at 0x28e1668>, '1*n + -1')}
+{(0, 1): 1, (0, 0): 0, (1, 0): 0, 'condition4': (<function <lambda> at 0x27dd7d0>, <function <lambda> at 0x27dd848>, '0*m + 1*n + 1'), 'condition3': (<function <lambda> at 0x27dd6e0>, <function <lambda> at 0x27dd758>, '0*m + 1*n + 1'), (1, 1): 0, 'condition1': (<function <lambda> at 0x27dd500>, <function <lambda> at 0x27dd578>, '0*m + 1*n + 1'), 'condition2': (<function <lambda> at 0x27dd5f0>, <function <lambda> at 0x27dd668>, '0*m + 1*n + 1')}
+{0: 0, 1: 1, 'condition1': (<function <lambda> at 0x27dd8c0>, <function <lambda> at 0x27dd938>, '1*n + -1')}
 0
 , 
 	INFINITE BUNNY
-{(0, 1): 0, (0, 0): 0, (1, 0): 0, 'condition4': (<function <lambda> at 0x28cac08>, <function <lambda> at 0x28ca9b0>, '0*m + 1*n + -1'), 'condition3': (<function <lambda> at 0x28cad70>, <function <lambda> at 0x28cab90>, '0*m + 1*n + -1'), (1, 1): 0, 'condition1': (<function <lambda> at 0x28cade8>, <function <lambda> at 0x28cae60>, '1*m + 1*n + -1'), 'condition2': (<function <lambda> at 0x28caf50>, <function <lambda> at 0x28cac80>, '0*m + 1*n + -1')}
-{0: 0, 1: 2, 'condition1': (<function <lambda> at 0x28ca938>, <function <lambda> at 0x28ca8c0>, '1*n + 1')}
+{(0, 1): 0, (0, 0): 0, (1, 0): 0, 'condition4': (<function <lambda> at 0x26e9b90>, <function <lambda> at 0x26e9050>, '0*m + 1*n + -1'), 'condition3': (<function <lambda> at 0x26e98c0>, <function <lambda> at 0x26e99b0>, '0*m + 1*n + -1'), (1, 1): 0, 'condition1': (<function <lambda> at 0x26e9c08>, <function <lambda> at 0x26e9140>, '1*m + 1*n + -1'), 'condition2': (<function <lambda> at 0x26e9a28>, <function <lambda> at 0x26e9938>, '0*m + 1*n + -1')}
+{0: 1, 1: 2, 'condition1': (<function <lambda> at 0x26e90c8>, <function <lambda> at 0x26e92a8>, '1*n + 1')}
 0
 , 
 	INFINITE BUNNY
-{(0, 1): 0, (0, 0): 0, (1, 0): 0, 'condition4': (<function <lambda> at 0x28e1de8>, <function <lambda> at 0x28e1b18>, '0*m + 1*n + -1'), 'condition3': (<function <lambda> at 0x28e1230>, <function <lambda> at 0x28e1c80>, '0*m + 1*n + -1'), (1, 1): 0, 'condition1': (<function <lambda> at 0x28e1ed8>, <function <lambda> at 0x28e1410>, '1*m + 1*n + -1'), 'condition2': (<function <lambda> at 0x28e1500>, <function <lambda> at 0x28e1c08>, '0*m + 1*n + -1')}
-{0: 1, 1: 2, 'condition1': (<function <lambda> at 0x28e1e60>, <function <lambda> at 0x28e1cf8>, '1*n + 1')}
+{(0, 1): 0, (0, 0): 0, (1, 0): 0, 'condition4': (<function <lambda> at 0x27e3668>, <function <lambda> at 0x27e3e60>, '0*m + 1*n + -1'), 'condition3': (<function <lambda> at 0x27e3d70>, <function <lambda> at 0x27e3938>, '0*m + 1*n + -1'), (1, 1): 0, 'condition1': (<function <lambda> at 0x27e3cf8>, <function <lambda> at 0x27e3aa0>, '1*m + 1*n + -1'), 'condition2': (<function <lambda> at 0x27e3050>, <function <lambda> at 0x27e3a28>, '0*m + 1*n + -1')}
+{0: 0, 1: 2, 'condition1': (<function <lambda> at 0x27e3f50>, <function <lambda> at 0x27e3c08>, '1*n + 1')}
 0
 
 XXX
+...
+...
 ..X
-...
-...
 .XX
-X.X
 X..
+X.X
 

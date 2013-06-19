@@ -4,6 +4,7 @@ Created on Jun 6, 2013
 @author: artreven
 '''
 import os
+import time
 
 import fca
 
@@ -133,7 +134,7 @@ class AE(object):
         """
         if self.basis == None:
             self.basis = self.find_basis()
-        #limit for checking the infinite bunnies
+        #limit for checking of the infinite bunnies
         limit = 10
         ce_dict = {}
         fin = 0
@@ -166,29 +167,40 @@ class AE(object):
         Run Attribute Exploration procedure till no other counter-examples
         can be found. Try to prove, return proved and not proved implications.
         """
-        if self.basis == None:
-            self.basis = self.find_basis()
-        m = '\n\n\n\tStep {} \n'.format(step + 1)
-        m += 'Canonical basis consists of {} implications, '.format(len(self.basis))
-        ce_dict, fin, inf = self.find_ces()
-        N = len(filter(lambda x: x != None, ce_dict.values()))
-        m += 'or {} atomic implications\n'.format(len(ce_dict.values()))
-        m += 'There were {} objects in context before the start of this step\n'.format(len(self.cxt.objects))
-        m += 'There were {} counter-examples found on this step, '.format(N)
-        m += 'of which {} finite and {} infinite\n'.format(fin, inf)
-        m += '{} atomic implications were not rejected\n'.format(len(ce_dict.values()) - N)
-        self.cxt.reduce_objects()
-        m += '{} Objects left after reducing\n'.format(len(self.cxt.objects))
-        print m
-        m += str(ce_dict)
         # Remove progress left from previous runs
         if step == 0:
             try:
                 os.remove(self.dest + '/progress.txt')
             except OSError:
                 pass
+        # tick
+        now = time.time()
+        if self.basis == None:
+            self.basis = self.find_basis()
+        # for info
+        basis_time = time.time() - now
+        basis = self.basis
+        no_objs = len(self.cxt.objects)
+        ce_dict, fin, inf = self.find_ces()
+        N = fin + inf
+        # tack
+        m = '\n\n\n\tStep {}, it took {} seconds'.format(step + 1,
+                                                         time.time() - now)
+        m += ', of which {} seconds to find basis\n'.format(basis_time)
+        m += 'Canonical basis consists of {} implications, '.format(len(basis))
+        m += 'or {} atomic implications\n'.format(len(ce_dict.values()))
+        m += 'There were {} objects before the start of this step\n'.format(no_objs)
+        m += 'There were {} counter-examples found on this step, '.format(N)
+        m += 'of which {} finite and {} infinite\n'.format(fin, inf)
+        m += '{} atomic implications were not rejected\n'.format(len(ce_dict.values()) - N)
+        self.cxt = self.cxt.reduce_objects()
+        m += '{} Objects left after reducing\n'.format(len(self.cxt.objects))
+        print m
         with open(self.dest + '/progress.txt', 'a') as file:
             file.write(m)
+        file.close()
+        with open(self.dest + '/step{}ces.txt'.format(step + 1), 'w') as file:
+            file.write(str(ce_dict))
         file.close()
         # if no CE found try to prove
         if (not any(ce_dict.values())):
