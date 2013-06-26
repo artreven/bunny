@@ -1,6 +1,7 @@
 #from nose.tools import *
+from fca import read_txt_with_names
 
-from bunny_exploration.tab_separated_objs_names import read_txt_objs_names
+#from bunny_exploration.tab_separated_objs_names import read_txt_objs_names
 from error_check.error_finder import *
 #from fca import Context, Implication
 #from suspicion_support import *
@@ -9,7 +10,7 @@ class TestErrorFinder:
     @classmethod
     def setup_class(self):
         test_cxt_path = './tests/test_cxt2.txt'
-        cxt = read_txt_objs_names(test_cxt_path)
+        cxt = read_txt_with_names(test_cxt_path)
         self.cxt4 = Context(cxt[3:], cxt.objects[3:],
                             cxt.attributes)
         self.cxt3 = Context(cxt[2:3] + cxt[4:], cxt.objects[2:3] + cxt.objects[4:],

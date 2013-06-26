@@ -98,53 +98,6 @@ id_ls = [id1, id2, id3, id4, id5, id6, id7, id8, id9, id10,
          id61, id62, id63, id64, id65, id66, id67, id68, id69, id70]
 
 ###############################################################################
-from collections import defaultdict
-
-size = 2
-bun_num = 0
-total_bun = size ** (size**2 + size + 1)
-
-def foo1():
-    now = time.time()
-    now_part = now
-    i_sat = defaultdict(int)
-    i = 0
-    for bun in be.bunnies(size):
-        i += 1
-        if (i % (total_bun/50)) == 0:
-            out = '{}% complete'.format((100*i) / total_bun)
-            out += '\t it took {} sec'.format(time.time() - now_part)
-            print out
-            now_part = time.time()
-        for j in range(70):
-            sat = bun.check_id(id_ls[j])
-            if sat == True:
-                i_sat[j] += 1
-    for j in range(70):
-        out = '{:4} bunnies satisfy id{:3} : {}'.format(i_sat[j], j+1, id_ls[j])
-        print out
-    print 'total execution time: {}'.format(time.time() - now)
-        
-def foo2(*ids):
-    for id_ in ids:
-        print id_
-    for bun in be.bunnies(size):
-        if all(bun.check_id(id_) for id_ in ids):
-            print bun
-
-def foo3(lim):
-    res = []
-    for k in range(70):
-        for j in range(k+1, 70):
-            sat = [(k, j)
-                   for bun in be.bunnies(size) 
-                   if bun.check_id(id_ls[k])
-                   if bun.check_id(id_ls[j])]
-            if (len(sat) > 0) and (len(sat) <= lim):
-                res.append(sat)
-    print len(res)
-    return res
-
 def init_cxt(size):
     obj_ls = []
     att_ls = id_ls
@@ -156,11 +109,47 @@ def init_cxt(size):
     cxt = fca.Context(table, obj_ls, att_ls)
     return cxt.reduce_objects()
 
+def ce_finder(basis, dest, wait):
+    limit = 10
+    ce_dict = {}
+    fin = 0
+    no_ces = 0
+    bun = None
+    found = {}
+    proved = []
+    for imp in basis:
+        for j in (imp.conclusion - imp.premise):
+            atomic_imp = fca.Implication(imp.premise, set((j,)))
+            # first try mace
+            if wait[1] >= 0:
+                found = be.mace4((atomic_imp,), dest, wait[1])
+            if found != {}:
+                fin += 1
+                no_ces += 1
+                ce_dict.update(found)
+            elif found == {}:
+                if wait[2] >= 0:
+                    (proved, _) = be.prover9((atomic_imp,), dest, wait[2])
+                if len(proved) == 1:
+                    continue
+                elif len(proved) == 0:
+                    bun = be.InfBunny.find(imp.premise, j, limit, wait[0])
+                    if bun != None:
+                        ce_dict[atomic_imp] = bun
+                        no_ces += 1
+    inf = no_ces - fin
+    m = '\n\n\n***{} CEs found: {} finite and {} infinite\n'.format(no_ces, fin, inf)
+    with open(dest + '/progress.txt', 'a') as file:
+        file.write(m)
+    file.close()
+    #print m
+    return ce_dict
+
 if __name__ == '__main__':
-    now = time.time()
+    import getpass
+    
     cxt = init_cxt(2)
-    dest = '/home/artreven/Dropbox/personal/Scripts/AptanaWorkspace/MIW/bunny_exploration/70ids_leq5_2'
-    if not os.path.exists(dest): os.makedirs(dest)
-    ae = be.AE(cxt, dest)
-    ae.run()
-    print time.time() - now
+    dest = os.path.expanduser('~') + '/Dropbox/personal/Scripts/AptanaWorkspace/MIW/bunny_exploration/70ids_leq5/3'
+    prover = lambda x: be.prover9(x[0])
+    ae = be.AE(cxt, dest, prover, ce_finder)
+    ae.run((15, 1, 1), (2,))

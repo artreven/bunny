@@ -20,16 +20,14 @@ def mace4(imp_ls, destination, wait_time=1):
     sos = 'formulas(sos).\n'
     goals = 'formulas(goals).\n'
     eol = 'end_of_list.\n\n'
-    N = 0
     
     imp_num = 0
-    unit_imps = 0
+    ce_dict = {}
     for imp in imp_ls:
         imp_num += 1
         count = 0
         for j in (imp.conclusion - imp.premise):
             count += 1
-            unit_imps += 1
             file_name = (destination +
                           r'/impl{}_{}.in'.format(imp_num, count))
             with open(file_name, 'w') as file:
@@ -41,18 +39,22 @@ def mace4(imp_ls, destination, wait_time=1):
                 file.write(goals)
                 file.write('\t' + str(j) + '.\n')
                 file.write(eol)
-                file.close()
-    
-                output = (destination +
-                          r'/impl{}_{}_mace4.out'.format(imp_num, count))
-                if subprocess.call('mace4 -t {} -N 25 -f '.format(wait_time)
-                                   + file_name + ' > ' +
-                                   output, shell=True) != 0:
-                    os.remove(output)
-                else: N += 1
             file.close()
+    
+            output = (destination +
+                      r'/impl{}_{}_mace4.out'.format(imp_num, count))
+            call_str = 'mace4 -t {} -N 25 -f '.format(wait_time)
+            call_str += file_name + ' > ' + output
+            with open(os.devnull, "w") as fnull:
+                if subprocess.call(call_str,
+                                   shell=True,
+                                   stdout=fnull,
+                                   stderr = fnull) != 0:
+                    os.remove(output)
+                else:
+                    ce_dict[Implication(imp.premise, set((j,)))] = read_model(output)
             os.remove(file_name)
-    return N
+    return ce_dict
 
 def prover9(imp_ls, destination, wait_time=2):
     """
@@ -66,42 +68,44 @@ def prover9(imp_ls, destination, wait_time=2):
     sos = 'formulas(sos).\n'
     goals = 'formulas(goals).\n'
     eol = 'end_of_list.\n\n'
-    Proved = []
-    NotProved = []
+    proved = []
+    not_proved = []
     
     imp_num = 0
-    unit_imps = 0
     for imp in imp_ls:
         imp_num += 1
         count = 0
         for j in (imp.conclusion - imp.premise):
-            count += 1
-            unit_imps += 1
-            InFileName = (destination +
+            count += 1          
+            file_name = (destination +
                           r'/impl{}_{}.in'.format(imp_num, count))
-            InputFile = open(InFileName, 'w')
-            InputFile.write(sos)
-            for k in imp.premise:
-                InputFile.write('\t' + str(k) + '.\n')
-            InputFile.write(eol)
+            with open(file_name, 'w') as file:
+                file.write(sos)
+                for k in imp.premise:
+                    file.write('\t' + str(k) + '.\n')
+                file.write(eol)
+    
+                file.write(goals)
+                file.write('\t' + str(j) + '.\n')
+                file.write(eol)
+            file.close()
 
-            InputFile.write(goals)
-            InputFile.write('\t' + str(j) + '.\n')
-            InputFile.write(eol)
-            InputFile.close()
-
-            ProvOutput = (destination +
-                          r'/impl{}_{}.prover9.out'.format(imp_num, count))
-            if subprocess.call('prover9 -t {} -f '.format(wait_time) +
-                               InFileName + ' > ' +
-                               ProvOutput, shell=True) != 0:
-                os.remove(ProvOutput)
-                NotProved.append(Implication(imp.premise, set((j,))))
-            else:
-                Proved.append(Implication(imp.premise, set((j,))))
-            InputFile.close()
-            os.remove(InFileName)
-    return Proved, NotProved
+            output = (destination +
+                      r'/impl{}_{}.prover9.out'.format(imp_num, count))
+            
+            call_str = 'prover9 -t {} -f '.format(wait_time)
+            call_str += file_name + ' > ' + output
+            with open(os.devnull, "w") as fnull:
+                if subprocess.call(call_str,
+                                   shell=True,
+                                   stdout=fnull,
+                                   stderr = fnull) != 0:
+                    os.remove(output)
+                    not_proved.append(Implication(imp.premise, set((j,))))
+                else:
+                    proved.append(Implication(imp.premise, set((j,))))
+            os.remove(file_name)
+    return proved, not_proved
 
 
 def read_model(path):
@@ -201,7 +205,4 @@ def read_all_models(dest):
 
 ###############################################################################
 if __name__ == "__main__":
-    id_prem = 'x = a*(-x)'
-    id_conc = 'x = -(a*x)'
-    imp = Implication(set((id_prem, )),
-                      set((id_conc, )))
+    pass

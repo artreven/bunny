@@ -8,7 +8,37 @@ import itertools
 
 import term_parser
 
+# Two errors to throw when the result of substitution into term is less 0 or not int
+class NoneValueError(Exception):
+    def __init__(self, message):
+        self.message = message
+    def __str__(self):
+        return self.message
+    
+class NegativeError(Exception):
+    def __init__(self, message):
+        self.message = message
+    def __str__(self):
+        return self.message
+    
+#######################DECORATORS############################################
+def memo(f):
+    """Decorator that caches the return value for each call to f(args).
+    Then when called again with same args, we can just look it up."""
+    cache = {}
+    def _f(*args):
+        try:
+            return cache[args]
+        except KeyError:
+            cache[args] = result = f(*args)
+            return result
+        except TypeError:
+            # some element of args can't be a dict key
+            return f(*args)
+    _f.__name__ = f.__name__
+    return _f
 
+##############################################################################
 class Identity(object):
     '''
     Class defines identities consisting of two terms: left and right. Used to
@@ -25,31 +55,6 @@ class Identity(object):
         
     def __repr__(self):
         return str(self.left_term.name) + ' = ' + str(self.right_term.name)
-    
-    def __call__(self, bunny, limit):
-        '''
-        evaluate if id holds for given values
-        '''
-        def evaluate(values):
-            return self.left_term(bunny, values) == self.right_term(bunny, values)
-        
-        if self.var_count == 1:
-            return all(evaluate([x, 0, 0, 0]) for x in xrange(limit))
-        elif self.var_count == 2:
-            return all(evaluate([x, y, 0, 0])
-                       for x in xrange(limit)
-                       for y in xrange(limit))
-        elif self.var_count == 3:
-            return all(evaluate([x, y, z, 0])
-                       for x in xrange(limit)
-                       for y in xrange(limit)
-                       for z in xrange(limit))
-        elif self.var_count == 4:
-            return all(evaluate([x, y, z, w])
-                       for x in xrange(limit)
-                       for y in xrange(limit)
-                       for z in xrange(limit)
-                       for w in xrange(limit))
     
     @classmethod
     def make_identity(cls, left_str, right_str):
@@ -75,12 +80,29 @@ class Term(object):
         self.compiled_str = compile(func_str, '', 'eval') #term rewritten as applications of functions
         self.name = name
         self.var_count = var_count
+        
+    @memo
+    def __call__(self, bunny, values):
+        '''
+        evaluate the term given bunny and values of variables.
+        
+        @return: value from bunny's domain or None if not defined
+        '''
+        (x, y, z, w) = values
+        (f2, f1, f0) = (bunny.f2, bunny.f1, bunny.f0)
+        result = eval(self.compiled_str)
+        if isinstance(result, int) and (result < 0):
+            info = 'result = {}, '.format(result)
+            info += 'values = {}, '.format(values)
+            info += 'func_str = {}'.format(self.func_str)
+            raise NegativeError(info)
+        return result
          
     def __repr__(self):
-        return self.func_str
+        return self.name
     
     def __eq__(self, other):
-        return repr(self) == repr(other)
+        return self.func_str == other.func_str
         
     @classmethod
     def str2term(cls, str_):
@@ -131,17 +153,6 @@ class Term(object):
         func_str = apply_op(var_list, op_order, op_types)
         return cls(func_str, name, var_count)
     
-    def __call__(self, bunny, values):
-        '''
-        evaluate the term given bunny and values of variables
-        '''
-        (x, y, z, w) = values
-        (f2, f1, f0) = (bunny.f2, bunny.f1, bunny.f0)
-        result = eval(self.compiled_str)
-        if result < 0:
-            print values, result, self.func_str
-        assert (result >= 0)
-        return result
     
 def generate_ts(len_limit, num_vars=1):
     '''

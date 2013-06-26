@@ -5,6 +5,8 @@ Created on Jun 6, 2013
 '''
 import os
 import time
+import shutil
+import copy
 
 import fca
 
@@ -12,51 +14,85 @@ import bunny_exploration as be
 
 class AE(object):
     '''
-    Class to represent Attribute Exploration procedure for bunnies
+    Class to represent Attribute Exploration procedure
     '''
 
-    def __init__(self, cxt, dest):
+    def __init__(self, cxt, dest, prover, ce_finder):
         '''
         Constructor
+        
+        @param cxt: initial cxt to start with
+        @param dest: proposed destination for current AE. May be changed,
+        see implementation.
+        @param ce_finder: should output dictionary implication: counter-example.
+        Every counter example should have method has_attribute accepting attribute
+        from the context.
+        @param prover: should output (self.proved, self.not_proved)
+        @ivar proved: proved implications from *current* basis
+        @ivar not proved: not proved yet implications from *current* basis
+        @ivar step: current step of AE
         '''
         self.cxt = cxt
-        self.basis = None
+        #self.basis = None
         self.proved = []
-        self.dest = dest
+        self.not_proved = []
+        self.dest = def_dest(dest)
+        self.prover = prover
+        self.ce_finder = ce_finder
+        # Remove progress left from previous runs
+        self.step = 0
+        try:
+            os.remove(self.dest + '/progress.txt')
+        except OSError:
+            pass
+        # Create directories for proofs and counter-examples
+        if os.path.exists(self.dest + '/proofs'):
+            shutil.rmtree(self.dest + '/proofs')
+        os.makedirs(self.dest + '/proofs')
+        if os.path.exists(self.dest + '/ces'):
+            shutil.rmtree(self.dest + '/ces')
+        os.makedirs(self.dest + '/ces')
         
     def find_basis(self):
         """
-        Find implication basis
+        Find implication basis and save it in self.basis in unit form
         """
         basis = self.cxt.attribute_implications
-        self.basis = basis
-        return self.cxt.attribute_implications
+        unit_basis = []
+        for imp in basis:
+            for j in (imp.conclusion - imp.premise):
+                unit_basis.append(fca.Implication(imp.premise, set((j,))))
+        self.not_proved = copy.deepcopy(unit_basis)
+        self.proved = []
+        return unit_basis
             
-    def _delete_models(self):
+    def _delete_ces(self):
         """
-        Delete all files output by Mace4
+        Delete all files output by ce_finder
         """
-        for i in os.listdir(self.dest):
-            if 'mace4' in i:
-                os.remove(self.dest + '/' + i)
+        for i in os.listdir(self.dest + '/ces'):
+            os.remove(self.dest + '/ces/' + i)
                 
-    def _delete_proves(self):
+    def _delete_proofs(self):
         """
-        Delete all files output by Prover9
+        Delete all files output by prover
         """
-        for i in os.listdir(self.dest):
-            if 'prover9' in i:
-                os.remove(self.dest + '/' + i)
+        for i in os.listdir(self.dest + '/proofs'):
+            os.remove(self.dest + '/proofs/' + i)
                 
     def _clear_directory(self):
         self._delete_ces()
-        self._delete_proves()
+        self._delete_proofs()
         
-    def _output_basis(self):
-        if self.basis == None:
-            self.basis = self.find_basis()
-        with open(self.dest + '/canon_imp_basis.txt', 'w') as file:
-            for imp in self.basis:
+    def _output_imps(self):
+        with open(self.dest + '/proved.txt', 'w') as file:
+            file.write('Proved Implications:\n')
+            for imp in self.proved:
+                file.write(str(imp) + '\n')
+        file.close()
+        with open(self.dest + '/not_proved.txt', 'w') as file:
+            file.write('Not Proved Implications:\n')
+            for imp in self.not_proved:
                 file.write(str(imp) + '\n')
         file.close()
         
@@ -67,171 +103,116 @@ class AE(object):
         
     def add_object(self, row, object_name):
         self.cxt.add_object(row, object_name)
-        self.basis = None
+        self.not_proved = None
+        self.proved = None
         
     def add_attribute(self, col, attr_name):
         self.cxt.add_attribute(self, col, attr_name)
-        self.basis = None
+        self.not_proved = None
+        self.proved = None
         
-    def prove(self):
+    def prove(self, wait):
         """
-        Run Prover9 on implication basis
+        Run self.prover on not proved implications, record progress (timing of
+        finding basis and work of prover).
+        
+        @param wait: time limit to wait for a proof
         """
-        if self.basis == None:
-            self.basis = self.find_basis()
-        return be.prover9(self.basis, self.dest)
-    
-    #TODO: probably delete, because differs from working with infinite bunnies
-    def _add_models(self):
-        """
-        Add models found by Mace4
-        """
-        models = be.read_all_models(self.dest)
-        for bun in models:
-            self.add_object([bun.check_id(id_) for id_ in self.cxt.attributes],
-                            bun)
-    
-    #TODO: not sure if this is needed
-    def mace(self, add=True, delete=True):
-        """
-        Run Mace4 on implications from basis and add found CE to context
-        """
-        if self.basis == None:
-            self.basis = self.find_basis()
-        N = be.mace4(self.basis, self.dest)
-        if add == True:
-            self._add_models()
-            self.basis = None
-        if delete == True:
-            self._delete_models()
-        return N
-    
-    #TODO: not sure if this is needed
-    def find_inf_ce(self, add=True):
-        """
-        Find infinite counter-examples and add them to the context
-        @return: Dictionary {implication: counter-example}
-        """
-        #limit for checking the infinite bunnies
-        limit = 10
-        ce_dict = {}
-        if self.basis == None:
-            self.basis = self.find_basis()
-        for imp in self.basis:
-            for j in imp.conclusion:
-                bun = be.InfBunny.find(imp.premise, j, limit)
-                ce_dict[fca.Implication(imp.premise, set((j,)))] = bun
-                if (bun != None) and (add == True):
-                    self.add_object([bun.check_id(id_, limit)
-                                     for id_ in self.cxt.attributes],
-                                    bun)
-        return ce_dict
-    
-    def find_ces(self, add=True):
-        """
-        Try to find counter-examples (first with mace, than infinite) for every
-        implication.
-        """
-        if self.basis == None:
-            self.basis = self.find_basis()
-        #limit for checking of the infinite bunnies
-        limit = 10
-        ce_dict = {}
-        fin = 0
-        N = 0
-        for imp in self.basis:
-            for j in imp.conclusion:
-                atomic_imp = fca.Implication(imp.premise, set((j,)))
-                found = be.mace4((atomic_imp,), self.dest)
-                if found == 1:
-                    fin += 1
-                    bun = be.read_model(self.dest + '/impl1_1_mace4.out')
-                    os.remove(self.dest + '/impl1_1_mace4.out')
-                elif found == 0:
-                    (proved, _) = be.prover9((atomic_imp,), self.dest, 1)
-                    if len(proved) == 1:
-                        os.remove(self.dest + '/impl1_1.prover9.out')
-                        continue
-                    bun = be.InfBunny.find(imp.premise, j, limit)
-                ce_dict[atomic_imp] = bun
-                if (add == True) and (bun != None):
-                    N += 1
-                    self.add_object([bun.check_id(id_, limit)
-                                     for id_ in self.cxt.attributes],
-                                    bun)
-        inf = N - fin
-        return ce_dict, fin, inf
-    
-    def run(self, step=0):
-        """
-        Run Attribute Exploration procedure till no other counter-examples
-        can be found. Try to prove, return proved and not proved implications.
-        """
-        # Remove progress left from previous runs
-        if step == 0:
-            try:
-                os.remove(self.dest + '/progress.txt')
-            except OSError:
-                pass
-        # tick
-        now = time.time()
-        if self.basis == None:
-            self.basis = self.find_basis()
-        # for info
-        basis_time = time.time() - now
-        basis = self.basis
-        no_objs = len(self.cxt.objects)
-        ce_dict, fin, inf = self.find_ces()
-        N = fin + inf
-        # tack
-        m = '\n\n\n\tStep {}, it took {} seconds'.format(step + 1,
-                                                         time.time() - now)
-        m += ', of which {} seconds to find basis\n'.format(basis_time)
-        m += 'Canonical basis consists of {} implications, '.format(len(basis))
-        m += 'or {} atomic implications\n'.format(len(ce_dict.values()))
-        m += 'There were {} objects before the start of this step\n'.format(no_objs)
-        m += 'There were {} counter-examples found on this step, '.format(N)
-        m += 'of which {} finite and {} infinite\n'.format(fin, inf)
-        m += '{} atomic implications were not rejected\n'.format(len(ce_dict.values()) - N)
-        self.cxt = self.cxt.reduce_objects()
-        m += '{} Objects left after reducing\n'.format(len(self.cxt.objects))
-        print m
+        self._delete_proofs()
+        ts = time.time()
+        proved, not_proved = self.prover(self.not_proved, self.dest + '/proofs',
+                                         wait)
+        te = time.time() - ts
+        for imp in proved:
+            self.proved.append(imp)
+            self.not_proved.remove(imp)
+        assert self.not_proved == not_proved
+        # construct message
+        m = '\n\n\n\tPROOF PHASE:\n'
+        m += 'It took {} seconds\n'.format(te)
+        m += '{} unit implication proved\n'.format(len(self.proved))
+        m += '{} unit implication not proved\n'.format(len(self.not_proved))
+        #print
         with open(self.dest + '/progress.txt', 'a') as file:
             file.write(m)
         file.close()
-        with open(self.dest + '/step{}ces.txt'.format(step + 1), 'w') as file:
-            file.write(str(ce_dict))
+        self._output_imps()
+        print m
+        return (self.proved, self.not_proved)
+    
+    def find_ces(self, wait):
+        """
+        Try to find counter-examples for every implication and add them if found.
+        Reduces objects in the context after adding counter-examples.
+        
+        @param wait: tuple of time limits for self.ce_finder
+        @var ce_dict: dictionary {implication: counter-example}.
+        Every counter example should have method has_attribute accepting
+        attributes from the context.
+        """
+        self._delete_ces()
+        self.step += 1
+        ts = time.time()
+        ce_dict = self.ce_finder(self.not_proved, self.dest + '/ces', wait)
+        # number of objects and implications before start for records
+        no_objs = len(self.cxt.objects)
+        no_imps = len(self.not_proved)
+        for ce in ce_dict.values():
+            if ce != None:
+                row = [ce.has_attribute(att) for att in self.cxt.attributes]
+                self.add_object(row, ce)
+        self.cxt = self.cxt.reduce_objects()
+        te = time.time() - ts
+        # construct message
+        m = '\n\n\n\tCOUNTER-EXAMPLE FINDING PHASE: STEP {}\n'.format(self.step)
+        m += 'It took {} seconds.\n'.format(te)
+        m += 'Run on {} atomic implications.\n'.format(no_imps)
+        m += 'There were {} objects before the start of this step\n'.format(no_objs)
+        m += 'There were {} counter-examples found on this step\n'.format(len([x for x in ce_dict.values() if x != None]))
+        self.cxt = self.cxt.reduce_objects()
+        m += '{} Objects left after reducing\n'.format(len(self.cxt.objects))
+        # print
+        with open(self.dest + '/progress.txt', 'a') as file:
+            file.write(m)
         file.close()
+        with open(self.dest + '/step{}ces.txt'.format(self.step), 'w') as file:
+            file.write('\tCounter-examples:\n')
+            for imp, ce in ce_dict.items():
+                file.write(str(imp) + '\n' + str(ce) + '\n\n')
+            file.write('\n\n\n\t Context:\n' + str(self.cxt))
+        file.close()
+        print m
+        return ce_dict
+    
+    def run(self, ce_wait, prove_wait):
+        """
+        Run Attribute Exploration procedure till no other counter-examples
+        can be found. Try to prove, return proved and not proved implications.
+        
+        @param ce_wait: tuple of how long to wait for ces.
+        @param prove_wait: tuple of how long to wait for proofs.
+        """
+        # try to find counter-examples
+        self.find_basis()
+        ce_dict = self.find_ces(ce_wait)
         # if no CE found try to prove
         if (not any(ce_dict.values())):
-            self._output_basis()
             self._output_cxt()
-            proved, not_proved = self.prove()
-            with open(self.dest + '/progress.txt', 'a') as file:
-                file.write('\n\nProved implications:\n')
-                for imp in proved:
-                    file.write(str(imp) + '\n')
-                file.write('\n\nNot proved implications:\n')
-                for imp in not_proved:
-                    file.write(str(imp) + '\n')
-            file.close()
-            return (proved, not_proved)
+            return self.prove(prove_wait)
         # if CE found proceed to next step
-        return self.run(step + 1)
+        return self.run(ce_wait, prove_wait)
     
+def def_dest(dest):
+    """
+    Create a new directory or modify name (if exists) and create.
+    """
+    if os.path.exists(dest):
+        new_dest = dest + '1'
+        return def_dest(new_dest)
+    elif not os.path.exists(dest):
+        os.makedirs(dest)
+        return dest
     
 ########################################################
 if __name__ == '__main__':
-    import time
-    
-    id_ls = []
-    id_ls.append(be.Identity.make_identity('x', 'a*(-x)'))
-    id_ls.append(be.Identity.make_identity('x', '-(a*x)'))
-    id_ls.append(be.Identity.make_identity('a', '-(a*a)'))
-    bun = be.Bunny({(0,0):0}, {0:0}, 0, 0, 0)
-    table = [[bun.check_id(id_ls[i]) for i in range(len(id_ls))], ]
-    cxt = fca.Context(table, [bun, ], id_ls)
-    ae = AE(cxt, '/home/artreven/Dropbox/personal/Scripts/AptanaWorkspace/MIW/bunny_exploration/tests/p9m4_test')
-    now = time.time()
-    print ae.run()
-    print time.time() - now
+    pass
