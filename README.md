@@ -2,7 +2,7 @@ MIW
 ===
 Here the code I use for my PhD project Mathematical Inferential Wikipedia is stored.
 
-![alt tag](https://github.com/artreven/MIW/tree/master/bunny_exploration/bunny.png)
+![alt tag](https://raw.github.com/artreven/MIW/tree/master/bunny_exploration/bunny.png)
 
 bunny_exploration
 -------------------
@@ -11,7 +11,7 @@ Holds the code for the attribute explorations of
 algebras of type (2, 1, 0) - Binary, Unary, Nulary operations, that's why they are
 called BUNnies. The formal context consists of bunnies as objects and identities
 as attributes.
-Example of bunny:
+Example of a bunny:
 <table>
   <td>
   <table>
@@ -65,13 +65,8 @@ error_check
 -------------
 ===
 Holds the code for finding errors in formal objects. The
-closely debugger is inside this package. More info inside.
+closely related debugger is inside this package. More info inside.
 
-
-reducing
-----------
-===
-Holds function capable of clarifiyng and reducing formal contexts.
 
 ===
 The polar fox is sweet, but dangerous for bunnies.
