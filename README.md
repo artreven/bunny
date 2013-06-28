@@ -2,7 +2,7 @@ MIW
 ===
 Here the code I use for my PhD project Mathematical Inferential Wikipedia is stored.
 
-![alt tag](https://raw.github.com/artreven/MIW/master/bunny_exploration/bunny.png)
+![alt tag](https://raw.github.com/artreven/MIW/master/bunny_exploration/bunny_hello.png)
 
 bunny_exploration
 -------------------
