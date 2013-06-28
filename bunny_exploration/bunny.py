@@ -5,6 +5,8 @@ Created on Apr 28, 2013
 '''
 import time
 import itertools
+import signal
+from contextlib import contextmanager
 
 import identity
 
@@ -18,6 +20,8 @@ class ArgError(Exception):
         self.message = 'For input {} function {} is not defined'.format(vals, f)
     def __str__(self):
         return self.message
+    
+class TimeoutException(Exception): pass
     
 #######################DECORATORS############################################
 def memo(f):
@@ -186,25 +190,26 @@ class InfBunny(Bunny):
         return s
     
     def has_attribute(self, id_):
-        return self.check_id(id_, 10)
-        
+        return self.check_id(id_, 10)      
+
     @classmethod
-    def find(cls, id_pos_ls, id_neg, limit, time_limit=0):
+    def find(cls, id_pos_ls, id_neg, limit, t_limit=0):
         '''
         find infinite bunny which satisfies all id_pos_ls and does not satisfy
         id_neg
         '''
         print 'Starting on positive identities: ', id_pos_ls,
-        print ',\tnegative identity: ', id_neg 
-        now = time.time()
-        for bunny in inf_bunnies(id_pos_ls, id_neg):
-            if (time_limit != 0) and (time.time() - now > time_limit):
-                print 'Time limit reached, no infinite bunny found\n'
-                return None
-            if (all([bunny.check_id(id_, limit) for id_ in id_pos_ls]) and
-                ((id_neg == None) or not bunny.check_id(id_neg, limit))):
-                    print 'Infinite bunny found', bunny, '\n'
-                    return bunny
+        print ',\tnegative identity: ', id_neg
+        try:
+            with time_limit(t_limit):
+                for bunny in inf_bunnies(id_pos_ls, id_neg):
+                    if (all([bunny.check_id(id_, limit) for id_ in id_pos_ls]) and
+                        ((id_neg == None) or not bunny.check_id(id_neg, limit))):
+                        print 'Infinite bunny found', bunny, '\n'
+                        return bunny
+        except TimeoutException, msg:
+            print 'Time limit = {} sec reached, no infinite bunny found\n'.format(t_limit)
+            return None
         print 'No infinite bunny found'
         return None
     
@@ -227,6 +232,17 @@ def generate_f(dict_values):
             else:
                 raise ArgError(args, f.__name__)
     return dict_values if hasattr(dict_values, '__call__') else f
+
+@contextmanager
+def time_limit(seconds):
+    def signal_handler(signum, frame):
+        raise TimeoutException, "Timed out!"
+    signal.signal(signal.SIGALRM, signal_handler)
+    signal.alarm(seconds)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
 
 ###############################GENERATION OF FINITE BUNNIES##############
 def bunnies(size):
@@ -292,25 +308,18 @@ def finish(f2_dict, f1_dict):
                 for i in dom) 
         
     normal_vals2 = [(0, 0), (0, 1), (1, 0), (1, 1),
-                    'condition1', 'condition2', 'condition3']
-    normal_vals1 = [0, 1, 'condition1']
+                    (1, 4), (4, 1), (4, 4), (3, 5),
+                    (3, 4), (4, 3)]
+    normal_vals1 = [0, 1, 4]
     f2s = [f2_dict,]
     f1s = [f1_dict,]
     for val in normal_vals2:
-        if not (val in f2_dict.keys()):
-            if val == 'condition1':
-                val = (1, 3)
-            elif val == 'condition2':
-                val = (3, 1)
-            elif val == 'condition3':
-                val = (3, 3)
-            (field, dom) = domain(val)
+        (field, dom) = domain(val)
+        if not (field[0] in f2_dict.keys()):
             f2s = add_val(f2s, field, dom)
     for val in normal_vals1:
-        if not (val in f1_dict.keys()):
-            if val == 'condition1':
-                val = (3, )
-            (field, dom) = domain(val)
+        (field, dom) = domain(val)
+        if not (field[0] in f1_dict.keys()):
             f1s = add_val(f1s, field, dom)
     return itertools.product(f2s, f1s)
 
@@ -356,23 +365,59 @@ def domain(field):
                    for b2 in [0, 1]
                    for c2 in [0, 1, -1, 2, -2, 3]#, -3]
                    if (a2*2 + c2 >= 0))
-        elif (field[1] >= 2) and (field[0] >= 2):
+        elif (field[1] >= 2) and (field[0] >= 2) and (field[0] == field[1]):
             field = ('condition3', 2)
-            dom = ((lambda m, n: (n >= 2) and (m >= 2), 
+            dom = ((lambda m, n: (n >= 2) and (m >= 2) and (m == n), 
                     lambda m, n: a3*m + b3*n + c3,
-                    '(n >= 2) and (m >= 2)',
+                    '(n >= 2) and (m >= 2) and (m == n)',
+                    '{0}*m + {1}*n + {2}'.format(a3, b3, c3))     
+                   for a3 in [0, 1]
+                   for b3 in [0, 1]
+                   for c3 in [0, 1, -1, 2, -2, 3]
+                   if (a3*1 + b3*2 + c3 >= 0)
+                   if (a3*2 + b3*1 + c3 >= 0))
+        elif (field[1] >= 2) and (field[0] >= 2) and (field[0] == (field[1]+1)):
+            field = ('condition4', 2)
+            dom = ((lambda m, n: (n >= 2) and (m >= 2) and (m == (n+1)), 
+                    lambda m, n: a3*m + b3*n + c3,
+                    '(n >= 2) and (m >= 2) and (m == (n+1))',
+                    '{0}*m + {1}*n + {2}'.format(a3, b3, c3))     
+                   for a3 in [0, 1]
+                   for b3 in [0, 1]
+                   for c3 in [0, 1, -1, 2, -2, 3]
+                   if (a3*2 + b3*3 + c3 >= 0))
+        elif (field[1] >= 2) and (field[0] >= 2) and (field[0] == (field[1]-1)):
+            field = ('condition5', 2)
+            dom = ((lambda m, n: (n >= 2) and (m >= 2) and (m == (n-1)), 
+                    lambda m, n: a3*m + b3*n + c3,
+                    '(n >= 2) and (m >= 2) and (m == (n-1))',
+                    '{0}*m + {1}*n + {2}'.format(a3, b3, c3))     
+                   for a3 in [0, 1]
+                   for b3 in [0, 1]
+                   for c3 in [0, 1, -1, 2, -2, 3]
+                   if (a3*3 + b3*2 + c3 >= 0))
+        elif ((field[1] >= 2) and (field[0] >= 2) and
+              (field[0] != field[1]) and (field[0] != field[1]-1) and
+              (field[0] != field[1]+1)):
+            field = ('condition6', 2)
+            dom = ((lambda m, n: ((n >= 2) and (m >= 2) and
+                                  (m != n) and (m != n-1) and (m != n+1)), 
+                    lambda m, n: a3*m + b3*n + c3,
+                    '((n >= 2) and (m >= 2) and \
+(m != n) and (m != n-1) and (m != n+1))',
                     '{0}*m + {1}*n + {2}'.format(a3, b3, c3))     
                    for a3 in [0, 1]
                    for b3 in [0, 1]
                    for c3 in [0, 1, -1, 2, -2, 3, -3]
-                   if (a3*1 + b3*2 + c3 >= 0)
-                   if (a3*2 + b3*1 + c3 >= 0))
+                   if (a3*2 + b3*2 + c3 >= 0))
         elif (field[1] < 2) and (field[0] < 2):
             field = (field, 2)
             dom = iter(range(4))
+    if not dom:
+        raise ValueError('field = {}, dom is not defined.'.format(field))
     return (field, dom)
 
-def construct(id_ls):
+def construct(id_ls, id_neg):
     """
     Construct and return bunny that satisfies all identities from id_ls.
     """        
@@ -382,6 +427,8 @@ def construct(id_ls):
         """
         iterator over all possibly valid updates and f2 and f1
         """
+        if not fields:
+            raise StopIteration
         next_field = fields[-1]
         assign = assigns[-1]
         for b in assign:
@@ -398,14 +445,14 @@ def construct(id_ls):
         try:
             return next(f_updates(f2_dict, f1_dict))
         except StopIteration:
+            if not fields:
+                raise StopIteration
             field = fields.pop()
             assign = assigns.pop()
             if field[1] == 1:
                 del(f1_dict[field[0]])
             elif field[1] == 2:
                 del(f2_dict[field[0]])
-            if not fields:
-                raise StopIteration
             return backtrack(f2_dict, f1_dict)
         
     def complete(f2_dict, f1_dict):
@@ -414,18 +461,26 @@ def construct(id_ls):
         """
         while(True):
             f2_dict, f1_dict = backtrack(f2_dict, f1_dict)
-            checks = [InfBunny(f2_dict, f1_dict).check_id(id_, limit, True)
-                      for id_ in id_ls]
-            for (sat, needed) in checks:
+            for id_ in id_ls:
+                sat, needed = InfBunny(f2_dict, f1_dict).check_id(id_, limit, True)
                 if sat == None:
                     (next_field, assign) = domain(needed[0])
                     fields.append(next_field)
                     assigns.append(assign)
-                elif sat == True:
-                    continue
-            if all(c[0] for c in checks):
-                yield f2_dict, f1_dict
-    
+                    break
+                elif sat == False:
+                    break
+            else:
+                if id_neg == None:
+                    yield f2_dict, f1_dict
+                sat, needed = InfBunny(f2_dict, f1_dict).check_id(id_neg, limit, True)
+                if sat == None:
+                    (next_field, assign) = domain(needed[0])
+                    fields.append(next_field)
+                    assigns.append(assign)
+                elif sat == False:
+                    yield f2_dict, f1_dict            
+                    
     f2_dict = {}
     f1_dict = {}
     limit = 4
@@ -446,7 +501,7 @@ def inf_bunnies(id_pos_ls, id_neg):
     Alternative version, uses bindings obtained from id_pos_ls and kind of
     backtracking.
     '''    
-    for f2_dict, f1_dict in construct(id_pos_ls):
+    for f2_dict, f1_dict in construct(id_pos_ls, id_neg):
         for f2_d, f1_d in finish(f2_dict, f1_dict):
             yield InfBunny(f2_d, f1_d)
         
@@ -457,34 +512,21 @@ def nth(iterable, n, default=None):
     return next(itertools.islice(iterable, n, None), default)
 
 if __name__ == '__main__':
-    import time
-    import cProfile
+    id1 = identity.Identity.make_identity('x', '-(x*x)')
+    id2 = identity.Identity.make_identity('-a', '-(-a)')
+    id3 = identity.Identity.make_identity('x', '-(a*x)')
+    id4 = identity.Identity.make_identity('a', '-(a*a)')
+    id5 = identity.Identity.make_identity('x', 'x')
     
-    id58 = identity.Identity.make_identity('x', '-(x*y)')
-    id53 = identity.Identity.make_identity('x', '(-x)*y')
-    id45 = identity.Identity.make_identity('x', 'a*(-x)')
-    id55 = identity.Identity.make_identity('x', '-(a*x)')
-    id16 = identity.Identity.make_identity('x', 'x*a')
-    id46 = identity.Identity.make_identity('x', 'x*(-a)')
-    
-    id52 = identity.Identity.make_identity('x', 'x*(-x)')
-    id3 = identity.Identity.make_identity('a', '-a')
-    id32 = identity.Identity.make_identity('a', '-(a*a)')
-    id8 = identity.Identity.make_identity('a', 'a*a')
-    id44 = identity.Identity.make_identity('x', '-(-(-x))')
-    id60 = identity.Identity.make_identity('-x', '-(-x)')
-    id5 = identity.Identity.make_identity('x', '-x')
-    
-    id_ls = [id45]
-    print '\t'.join(map(str, id_ls))
-    solutions = inf_bunnies(id_ls, None)
-    c = 0
-    for bunny in solutions:
-        c += 1
-        print bunny
-        print bunny.check_id(id_ls[0], 4, True)
-        print bunny.check_id(id_ls[-1], 4)
-        print c
+    idn = identity.Identity.make_identity('a', '-a')
+    ts = time.time()
+    bunny = InfBunny.find([id1, id2, id3, id4, id5], idn, limit=8)
+    print time.time() - ts
+
+
+
+
+
         
 ###############################GENERATION OF INFINITE BUNNIES##############
 import sympy

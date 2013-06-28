@@ -122,14 +122,14 @@ def ce_finder(basis, dest, wait):
             atomic_imp = fca.Implication(imp.premise, set((j,)))
             # first try mace
             if wait[1] >= 0:
-                found = be.mace4((atomic_imp,), dest, wait[1])
+                found = be.mace4((atomic_imp,), dest  + '/ces', wait[1])
             if found != {}:
                 fin += 1
                 no_ces += 1
                 ce_dict.update(found)
             elif found == {}:
                 if wait[2] >= 0:
-                    (proved, _) = be.prover9((atomic_imp,), dest, wait[2])
+                    (proved, _) = be.prover9((atomic_imp,), dest  + '/ces', wait[2])
                 if len(proved) == 1:
                     continue
                 elif len(proved) == 0:
@@ -142,7 +142,8 @@ def ce_finder(basis, dest, wait):
     with open(dest + '/progress.txt', 'a') as file:
         file.write(m)
     file.close()
-    #print m
+    print dest
+    print m
     return ce_dict
 
 if __name__ == '__main__':
@@ -150,6 +151,6 @@ if __name__ == '__main__':
     
     cxt = init_cxt(2)
     dest = os.path.expanduser('~') + '/Dropbox/personal/Scripts/AptanaWorkspace/MIW/bunny_exploration/70ids_leq5/3'
-    prover = lambda x: be.prover9(x[0])
+    prover = be.prover9
     ae = be.AE(cxt, dest, prover, ce_finder)
-    ae.run((15, 1, 1), (2,))
+    ae.run((2, 1, 1), 2)

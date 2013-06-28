@@ -2,6 +2,8 @@ MIW
 ===
 Here the code I use for my PhD project Mathematical Inferential Wikipedia is stored.
 
+![alt tag](https://github.com/artreven/MIW/tree/master/bunny_exploration/bunny.png)
+
 bunny_exploration
 -------------------
 ===

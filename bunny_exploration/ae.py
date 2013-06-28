@@ -57,7 +57,14 @@ class AE(object):
         """
         Find implication basis and save it in self.basis in unit form
         """
+        ts = time.time()
         basis = self.cxt.attribute_implications
+        te = time.time()
+        m = '\nIt took {} seconds to compute the canonical basis.\n'.format(te-ts)
+        print m
+        with open(self.dest + '/progress.txt', 'a') as file:
+            file.write(m)
+        file.close()
         unit_basis = []
         for imp in basis:
             for j in (imp.conclusion - imp.premise):
@@ -153,7 +160,7 @@ class AE(object):
         self._delete_ces()
         self.step += 1
         ts = time.time()
-        ce_dict = self.ce_finder(self.not_proved, self.dest + '/ces', wait)
+        ce_dict = self.ce_finder(self.not_proved, self.dest, wait)
         # number of objects and implications before start for records
         no_objs = len(self.cxt.objects)
         no_imps = len(self.not_proved)
@@ -193,8 +200,16 @@ class AE(object):
         @param prove_wait: tuple of how long to wait for proofs.
         """
         # try to find counter-examples
+        ts = time.time()
         self.find_basis()
         ce_dict = self.find_ces(ce_wait)
+        te = time.time()
+        m = '_'*80 + '\n'
+        m += '\tSTEP TIME: {} sec\n\n\n'.format(te - ts)
+        print m
+        with open(self.dest + '/progress.txt', 'a') as file:
+            file.write(m)
+        file.close()
         # if no CE found try to prove
         if (not any(ce_dict.values())):
             self._output_cxt()

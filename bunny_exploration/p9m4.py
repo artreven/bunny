@@ -31,10 +31,11 @@ def mace4(imp_ls, destination, wait_time=1):
             file_name = (destination +
                           r'/impl{}_{}.in'.format(imp_num, count))
             with open(file_name, 'w') as file:
-                file.write(sos)
-                for k in imp.premise:
-                    file.write('\t' + str(k) + '.\n')
-                file.write(eol)
+                if imp.premise:
+                    file.write(sos)
+                    for k in imp.premise:
+                        file.write('\t' + str(k) + '.\n')
+                    file.write(eol)
     
                 file.write(goals)
                 file.write('\t' + str(j) + '.\n')
@@ -80,10 +81,11 @@ def prover9(imp_ls, destination, wait_time=2):
             file_name = (destination +
                           r'/impl{}_{}.in'.format(imp_num, count))
             with open(file_name, 'w') as file:
-                file.write(sos)
-                for k in imp.premise:
-                    file.write('\t' + str(k) + '.\n')
-                file.write(eol)
+                if imp.premise:
+                    file.write(sos)
+                    for k in imp.premise:
+                        file.write('\t' + str(k) + '.\n')
+                    file.write(eol)
     
                 file.write(goals)
                 file.write('\t' + str(j) + '.\n')

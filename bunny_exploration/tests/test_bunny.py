@@ -182,3 +182,18 @@ class TestInfBunny():
         id53 = bunny_exploration.Identity.make_identity('x', '(-x)*y')        
         bunny_found = InfBunny.find([id53], id58, limit=8)
         assert bunny_found != None
+        
+    def test_find6(self):
+        print '\ttest_find6\n'
+        # [a = x*(-a), x = x, x = x*(-x), x = a*(-x), x = x*a, a = a*(-a), a = a*a] => -a = x*y
+
+        id1 = bunny_exploration.Identity.make_identity('a', 'x*(-a)')
+        id2 = bunny_exploration.Identity.make_identity('x', 'x')
+        id3 = bunny_exploration.Identity.make_identity('x', 'x*(-x)')
+        id4 = bunny_exploration.Identity.make_identity('x', 'a*(-x)')
+        id5 = bunny_exploration.Identity.make_identity('x', 'x*a')
+        id6 = bunny_exploration.Identity.make_identity('a', 'a*(-a)')
+        id7 = bunny_exploration.Identity.make_identity('a', 'a*a')
+        idn = bunny_exploration.Identity.make_identity('-a', 'x*y')
+        bunny_found = InfBunny.find([id1, id2, id3, id5, id6, id7], idn, limit=8, t_limit=15)
+        assert bunny_found != None
