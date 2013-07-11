@@ -193,20 +193,25 @@ class InfBunny(Bunny):
         return self.check_id(id_, 10)      
 
     @classmethod
-    def find(cls, id_pos_ls, id_neg, limit, t_limit=0):
+    def find(cls, id_pos_ls, id_neg, limit, t_limit, previous=None):
         '''
         find infinite bunny which satisfies all id_pos_ls and does not satisfy
         id_neg
         '''
         print 'Starting on positive identities: ', id_pos_ls,
         print ',\tnegative identity: ', id_neg
+        if (previous and
+            (all([previous.check_id(id_, limit) for id_ in id_pos_ls]) and
+            ((id_neg == None) or not previous.check_id(id_neg, limit)))):
+                print 'Infinite bunny found - previous', previous, '\n'
+                return previous
         try:
             with time_limit(t_limit):
                 for bunny in inf_bunnies(id_pos_ls, id_neg):
                     if (all([bunny.check_id(id_, limit) for id_ in id_pos_ls]) and
                         ((id_neg == None) or not bunny.check_id(id_neg, limit))):
-                        print 'Infinite bunny found', bunny, '\n'
-                        return bunny
+                            print 'Infinite bunny found', bunny, '\n'
+                            return bunny
         except TimeoutException, msg:
             print 'Time limit = {} sec reached, no infinite bunny found\n'.format(t_limit)
             return None
@@ -223,7 +228,7 @@ def generate_f(dict_values):
             return dict_values[args[0]] if (len(args) == 1) else dict_values[args]
         except KeyError:
             conds = [(cond_case[0], cond_case[1])
-                     for (name, cond_case) in dict_values.items()
+                     for (name, cond_case) in sorted(dict_values.items())
                      if ((name.__class__.__name__ == 'str') and
                          name.startswith('condition'))]
             for (cond, case) in conds:
@@ -308,8 +313,15 @@ def finish(f2_dict, f1_dict):
                 for i in dom) 
         
     normal_vals2 = [(0, 0), (0, 1), (1, 0), (1, 1),
-                    (1, 4), (4, 1), (4, 4), (3, 5),
-                    (3, 4), (4, 3)]
+                    (2, 2),
+                    (1, 2), (2, 1),
+                    (0, 3), (3, 0),
+                    (1, 3), (3, 1),
+                    (1, 4), (0, 4), 
+                    (4, 1), (4, 0),
+                    (4, 4), (4, 9),
+                    (3, 4), (4, 3),
+                    (3, 5), (5, 3)]
     normal_vals1 = [0, 1, 4]
     f2s = [f2_dict,]
     f1s = [f1_dict,]
@@ -327,84 +339,130 @@ def domain(field):
     """
     return next field and possible values for this field
     """
+    dom = None
     if isinstance(field, int):
         field = (field,)
     # Case for f1
     if len(field) == 1:
-        if field[0] >= 2:
+        if field[0] >= 3:
             field = ('condition1', 1)
-            dom = ((lambda n: n >= 2,
+            dom = ((lambda n: n >= 3,
                     lambda n: d1*n + e1,
-                    'n >= 2',
+                    'n >= 3',
                     '{0}*n + {1}'.format(d1, e1))
                    for d1 in [0, 1, 2]
-                   for e1 in [0, 1, -1, 2, -2]
-                   if (d1*2 + e1 >= 0))
-        elif field[0] < 2:
+                   for e1 in [0, 1, -1, 2, -2, 3, -3]
+                   if (d1*3 + e1 >= 0))
+        elif field[0] < 3:
             field = (field[0], 1)
-            dom = iter(range(4))
+            dom = iter(range(5))
     # Case for f2
     elif len(field) == 2:
-        if (field[0] in [0, 1]) and (field[1] >= 2):
+        if ((field[0] in [0, 1] and field[1] in [2, 3]) or
+            (field[0] in [2, 3] and field[1] in [0, 1])):
+            field = (field, 2)
+            dom = iter(range(6))
+        elif (field[0] == 2 and field[1] == 2):
+            field = (field, 2)
+            dom = iter(range(6))
+        elif (field[0] == 0) and (field[1] >= 3):
             field = ('condition1', 2)
-            dom = ((lambda m, n: (m in [0,1]) and (n >= 2), 
-                    lambda m, n: a1*m + b1*n + c1,
-                    '(m in [0,1]) and (n >= 2)',
-                    '{0}*m + {1}*n + {2}'.format(a1, b1, c1))
-                   for a1 in [0, 1]
+            dom = ((lambda m, n: (m  == 0) and (n >= 3), 
+                    lambda m, n: b1*n + c1,
+                    '(m == 0) and (n >= 3)',
+                    '{0}*n + {1}'.format(b1, c1))
                    for b1 in [0, 1]
-                   for c1 in [0, 1, -1, 2, -2, 3]#, -3]
+                   for c1 in [0, 1, -1, 2, -2, 3]
                    if (b1*2 + c1 >= 0))
-        elif (field[1] in [0, 1]) and (field[0] >= 2):
+        elif (field[0] == 1) and (field[1] >= 4):
             field = ('condition2', 2)
-            dom = ((lambda m, n: (n in [0,1]) and (m >= 2), 
-                    lambda m, n: a2*m + b2*n + c2,
-                    '(n in [0,1]) and (m >= 2)',
-                    '{0}*m + {1}*n + {2}'.format(a2, b2, c2))      
-                   for a2 in [0, 1]
-                   for b2 in [0, 1]
-                   for c2 in [0, 1, -1, 2, -2, 3]#, -3]
-                   if (a2*2 + c2 >= 0))
-        elif (field[1] >= 2) and (field[0] >= 2) and (field[0] == field[1]):
+            dom = ((lambda m, n: (m  == 1) and (n >= 4), 
+                    lambda m, n: b1*n + c1,
+                    '(m == 1) and (n >= 4)',
+                    '{0}*n + {1}'.format(b1, c1))
+                   for b1 in [0, 1]
+                   for c1 in [0, 1, -1, 2, -2, 3, 4, 5]#, -3]
+                   if (b1*4 + c1 >= 0))
+        elif (field[1] == 0) and (field[0] >= 3):
             field = ('condition3', 2)
-            dom = ((lambda m, n: (n >= 2) and (m >= 2) and (m == n), 
-                    lambda m, n: a3*m + b3*n + c3,
-                    '(n >= 2) and (m >= 2) and (m == n)',
-                    '{0}*m + {1}*n + {2}'.format(a3, b3, c3))     
-                   for a3 in [0, 1]
-                   for b3 in [0, 1]
-                   for c3 in [0, 1, -1, 2, -2, 3]
-                   if (a3*1 + b3*2 + c3 >= 0)
-                   if (a3*2 + b3*1 + c3 >= 0))
-        elif (field[1] >= 2) and (field[0] >= 2) and (field[0] == (field[1]+1)):
+            dom = ((lambda m, n: (n == 0) and (m >= 3), 
+                    lambda m, n: a2*m + c2,
+                    '(n == 0) and (m >= 3)',
+                    '{0}*m + {1}'.format(a2, c2))      
+                   for a2 in [0, 1]
+                   for c2 in [0, 1, -1, 2, -2, 3]
+                   if (a2*2 + c2 >= 0))
+        elif (field[1] == 1) and (field[0] >= 4):
             field = ('condition4', 2)
-            dom = ((lambda m, n: (n >= 2) and (m >= 2) and (m == (n+1)), 
+            dom = ((lambda m, n: (n == 1) and (m >= 4), 
+                    lambda m, n: a2*m + c2,
+                    '(n == 1) and (m >= 4)',
+                    '{0}*m + {1}'.format(a2, c2))      
+                   for a2 in [0, 1]
+                   for c2 in [0, 1, -1, 2, -2, 3, 4, 5]#, -3]
+                   if (a2*2 + c2 >= 0))
+        elif (field[1] >= 3) and (field[0] == field[1]):
+            field = ('condition5', 2)
+            dom = ((lambda m, n: (n >= 3) and (m == n), 
                     lambda m, n: a3*m + b3*n + c3,
-                    '(n >= 2) and (m >= 2) and (m == (n+1))',
+                    '(n >= 3) and (m == n)',
                     '{0}*m + {1}*n + {2}'.format(a3, b3, c3))     
                    for a3 in [0, 1]
                    for b3 in [0, 1]
                    for c3 in [0, 1, -1, 2, -2, 3]
-                   if (a3*2 + b3*3 + c3 >= 0))
-        elif (field[1] >= 2) and (field[0] >= 2) and (field[0] == (field[1]-1)):
-            field = ('condition5', 2)
-            dom = ((lambda m, n: (n >= 2) and (m >= 2) and (m == (n-1)), 
+                   if (a3*3 + b3*3 + c3 >= 0))
+        elif (field[1] >= 2) and (field[0] == (field[1]+1)):
+            field = ('condition6', 2)
+            dom = ((lambda m, n: (n >= 2) and (m == (n+1)), 
                     lambda m, n: a3*m + b3*n + c3,
-                    '(n >= 2) and (m >= 2) and (m == (n-1))',
+                    '(n >= 2) and (m == (n+1))',
                     '{0}*m + {1}*n + {2}'.format(a3, b3, c3))     
                    for a3 in [0, 1]
                    for b3 in [0, 1]
                    for c3 in [0, 1, -1, 2, -2, 3]
                    if (a3*3 + b3*2 + c3 >= 0))
+        elif (field[0] >= 2) and (field[0] == (field[1]-1)):
+            field = ('condition7', 2)
+            dom = ((lambda m, n: (m >= 2) and (m == (n-1)), 
+                    lambda m, n: a3*m + b3*n + c3,
+                    '(m >= 2) and (m == (n-1))',
+                    '{0}*m + {1}*n + {2}'.format(a3, b3, c3))     
+                   for a3 in [0, 1]
+                   for b3 in [0, 1]
+                   for c3 in [0, 1, -1, 2, -2, 3]
+                   if (a3*2 + b3*3 + c3 >= 0))
+        elif (field[1] >= 2) and (field[0] == (field[1]+2)):
+            field = ('condition8', 2)
+            dom = ((lambda m, n: (n >= 2) and (m == (n+2)), 
+                    lambda m, n: a3*m + b3*n + c3,
+                    '(n >= 2) and (m == (n+2))',
+                    '{0}*m + {1}*n + {2}'.format(a3, b3, c3))     
+                   for a3 in [0, 1]
+                   for b3 in [0, 1]
+                   for c3 in [0, 1, -1, 2, -2, 3]
+                   if (a3*4 + b3*2 + c3 >= 0))
+        elif (field[0] >= 2) and (field[0] == (field[1]-2)):
+            field = ('condition9', 2)
+            dom = ((lambda m, n: (m >= 2) and (m == (n-2)), 
+                    lambda m, n: a3*m + b3*n + c3,
+                    '(m >= 2) and (m == (n-2))',
+                    '{0}*m + {1}*n + {2}'.format(a3, b3, c3))     
+                   for a3 in [0, 1]
+                   for b3 in [0, 1]
+                   for c3 in [0, 1, -1, 2, -2, 3]
+                   if (a3*2 + b3*4 + c3 >= 0))
         elif ((field[1] >= 2) and (field[0] >= 2) and
               (field[0] != field[1]) and (field[0] != field[1]-1) and
-              (field[0] != field[1]+1)):
-            field = ('condition6', 2)
+              (field[0] != field[1]+1) and (field[0] != field[1]-2) and
+              (field[0] != field[1]+2)):
+            field = ('condition10', 2)
             dom = ((lambda m, n: ((n >= 2) and (m >= 2) and
-                                  (m != n) and (m != n-1) and (m != n+1)), 
+                                  (m != n) and (m != n-1) and
+                                  (m != n+1) and (m != n+2) and
+                                  (m != n-2)), 
                     lambda m, n: a3*m + b3*n + c3,
                     '((n >= 2) and (m >= 2) and \
-(m != n) and (m != n-1) and (m != n+1))',
+(m != n) and (m != n-1) and (m != n+1) and (m != n+2) and (m != n-2))',
                     '{0}*m + {1}*n + {2}'.format(a3, b3, c3))     
                    for a3 in [0, 1]
                    for b3 in [0, 1]
@@ -460,7 +518,11 @@ def construct(id_ls, id_neg):
         iterator over all f2 and f1 satisfying id_
         """
         while(True):
-            f2_dict, f1_dict = backtrack(f2_dict, f1_dict)
+            if id_neg != None:
+                sat, needed = InfBunny(f2_dict, f1_dict).check_id(id_neg, limit, True)
+                if sat == True:
+                    f2_dict, f1_dict = backtrack(f2_dict, f1_dict)
+                    continue
             for id_ in id_ls:
                 sat, needed = InfBunny(f2_dict, f1_dict).check_id(id_, limit, True)
                 if sat == None:
@@ -471,27 +533,21 @@ def construct(id_ls, id_neg):
                 elif sat == False:
                     break
             else:
-                if id_neg == None:
+                if id_neg != None:
+                    sat, needed = InfBunny(f2_dict, f1_dict).check_id(id_neg, limit, True)
+                    if sat == None:
+                        (next_field, assign) = domain(needed[0])
+                        fields.append(next_field)
+                        assigns.append(assign)
+                    elif sat == False:
+                        yield f2_dict, f1_dict
+                else:
                     yield f2_dict, f1_dict
-                sat, needed = InfBunny(f2_dict, f1_dict).check_id(id_neg, limit, True)
-                if sat == None:
-                    (next_field, assign) = domain(needed[0])
-                    fields.append(next_field)
-                    assigns.append(assign)
-                elif sat == False:
-                    yield f2_dict, f1_dict            
+            f2_dict, f1_dict = backtrack(f2_dict, f1_dict)
                     
     f2_dict = {}
     f1_dict = {}
-    limit = 4
-    ch = (InfBunny(f2_dict, f1_dict).check_id(id_, limit, True) for id_ in id_ls)
-    for sat, needed in ch:
-        if sat == None:
-            (next_field, assign) = domain(needed[0])
-            fields.append(next_field)
-            assigns.append(assign)
-        elif sat == False:
-            return None
+    limit = 9
     return complete(f2_dict, f1_dict)
 
 def inf_bunnies(id_pos_ls, id_neg):
@@ -512,16 +568,7 @@ def nth(iterable, n, default=None):
     return next(itertools.islice(iterable, n, None), default)
 
 if __name__ == '__main__':
-    id1 = identity.Identity.make_identity('x', '-(x*x)')
-    id2 = identity.Identity.make_identity('-a', '-(-a)')
-    id3 = identity.Identity.make_identity('x', '-(a*x)')
-    id4 = identity.Identity.make_identity('a', '-(a*a)')
-    id5 = identity.Identity.make_identity('x', 'x')
-    
-    idn = identity.Identity.make_identity('a', '-a')
-    ts = time.time()
-    bunny = InfBunny.find([id1, id2, id3, id4, id5], idn, limit=8)
-    print time.time() - ts
+    pass
 
 
 

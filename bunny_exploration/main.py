@@ -89,6 +89,33 @@ id68 = be.Identity.make_identity('-x', 'y*x')
 id69 = be.Identity.make_identity('-x', 'y*y')
 id70 = be.Identity.make_identity('-x', 'y*z')
 
+
+
+id20 = be.Identity.make_identity('a', '-(-(-a))')
+id24 = be.Identity.make_identity('a', '(-a)*a')
+id32 = be.Identity.make_identity('a', '-(a*a)')
+id33 = be.Identity.make_identity('a', '-(a*x)')
+id50 = be.Identity.make_identity('x', '(-a)*x')
+id51 = be.Identity.make_identity('x', '(-x)*a')
+
+id56 = be.Identity.make_identity('x', '-(x*a)')
+
+id6 = be.Identity.make_identity('a', '-(-a)')
+id22 = be.Identity.make_identity('a', 'a*(-a)')
+id24 = be.Identity.make_identity('a', '(-a)*a')
+id27 = be.Identity.make_identity('a', 'x*(-x)')
+id39 = be.Identity.make_identity('-a', 'a*a')
+id46 = be.Identity.make_identity('x', 'x*(-a)')
+id50 = be.Identity.make_identity('x', '(-a)*x')
+id55 = be.Identity.make_identity('x', '-(a*x)')
+id45 = be.Identity.make_identity('x', 'a*(-x)')
+id25 = be.Identity.make_identity('a', '(-a)*x')
+id33 = be.Identity.make_identity('a', '-(a*x)')
+id52 = be.Identity.make_identity('x', '(-x)*x')
+id57 = be.Identity.make_identity('x', '-(x*x)')
+id40 = be.Identity.make_identity('-a', 'a*x')
+
+
 id_ls = [id1, id2, id3, id4, id5, id6, id7, id8, id9, id10,
          id11, id12, id13, id14, id15, id16, id17, id18, id19, id20,
          id21, id22, id23, id24, id25, id26, id27, id28, id29, id30,
@@ -115,6 +142,7 @@ def ce_finder(basis, dest, wait):
     fin = 0
     no_ces = 0
     bun = None
+    prev = None
     found = {}
     proved = []
     for imp in basis:
@@ -133,8 +161,9 @@ def ce_finder(basis, dest, wait):
                 if len(proved) == 1:
                     continue
                 elif len(proved) == 0:
-                    bun = be.InfBunny.find(imp.premise, j, limit, wait[0])
+                    bun = be.InfBunny.find(imp.premise, j, limit, wait[0], prev)
                     if bun != None:
+                        prev = bun
                         ce_dict[atomic_imp] = bun
                         no_ces += 1
     inf = no_ces - fin
@@ -153,4 +182,4 @@ if __name__ == '__main__':
     dest = os.path.expanduser('~') + '/Dropbox/personal/Scripts/AptanaWorkspace/MIW/bunny_exploration/70ids_leq5/3'
     prover = be.prover9
     ae = be.AE(cxt, dest, prover, ce_finder)
-    ae.run((2, 1, 1), 2)
+    ae.run((5, 1, 1), 2)
