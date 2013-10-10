@@ -307,6 +307,9 @@ def _index(f2_dict, f1_dict, f0_dict, size):
                 
 #############################GENERATION OF INFINITE BUNNIES 2###############
 def finish(f2_dict, f1_dict):
+    """
+    Finalize partially defined f2 and f1 to total functions.  
+    """
     def add_val(fs, field, dom):
         return (dict(f_d.items() + {field[0]: i}.items())
                 for f_d in fs
@@ -322,7 +325,7 @@ def finish(f2_dict, f1_dict):
                     (4, 4), (4, 9),
                     (3, 4), (4, 3),
                     (3, 5), (5, 3)]
-    normal_vals1 = [0, 1, 4]
+    normal_vals1 = [0, 1, 2, 3, 4]
     f2s = [f2_dict,]
     f1s = [f1_dict,]
     for val in normal_vals2:
@@ -483,7 +486,7 @@ def construct(id_ls, id_neg):
     assigns = []
     def f_updates(f2_dict, f1_dict):
         """
-        iterator over all possibly valid updates and f2 and f1
+        iterator over all possibly valid updates of f2 and f1
         """
         if not fields:
             raise StopIteration
@@ -515,7 +518,7 @@ def construct(id_ls, id_neg):
         
     def complete(f2_dict, f1_dict):
         """
-        iterator over all f2 and f1 satisfying id_
+        iterator over all f2 and f1 satisfying id_ls and not satisfying id_neg
         """
         while(True):
             if id_neg != None:
@@ -552,7 +555,7 @@ def construct(id_ls, id_neg):
 
 def inf_bunnies(id_pos_ls, id_neg):
     '''
-    Create infinite bunnies that satisfy all id_pos_ls.
+    Create infinite bunnies that satisfy all id_pos_ls and do not satisfy id_neg.
     
     Alternative version, uses bindings obtained from id_pos_ls and kind of
     backtracking.
