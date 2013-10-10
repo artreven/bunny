@@ -39,22 +39,22 @@ class TestErrorFinder:
         pass
         
     def test_split_imps(self):
-        assert len(split_implications(inspect_errors_a_12(self.cxt1, [0,]))) == 4
+        assert len(split_implications(inspect_direct(self.cxt1, [0,]))) == 4
     
-    def test_inspect_dg_empty(self):
+    def test_inspect_dg(self):
         for cxt in [self.cxt1, self.cxt2, self.cxt3, self.cxt4]:
-            for i in inspect_dg_empty(cxt, (0, )):
+            for i in inspect_dg(cxt, (0, )):
                 assert not i.is_respected(cxt.get_object_intent_by_index(0))
                 assert i.is_respected(cxt.get_object_intent_by_index(1))
         for cxt in [self.cxt12, self.cxt2, self.cxt23]:
-            for i in inspect_dg_empty(cxt, (0, 1)):
+            for i in inspect_dg(cxt, (0, 1)):
                 assert not i.is_respected(cxt.get_object_intent_by_index(0))
                 assert not i.is_respected(cxt.get_object_intent_by_index(1))
                 assert i.is_respected(cxt.get_object_intent_by_index(2))
         
     def test_inspect(self):
         for cxt in [self.cxt1, self.cxt2, self.cxt3, self.cxt4]:
-            for i in inspect_errors_a_12(cxt, [0,]):
+            for i in inspect_direct(cxt, [0,]):
                 assert not i.is_respected(cxt.get_object_intent_by_index(0))
                 # Probably rewrite is_respected for imps with negation
                 #assert i.is_respected(cxt.get_object_intent_by_index(1))
@@ -62,7 +62,13 @@ class TestErrorFinder:
                 next(ints)
                 assert any([(i.premise <= int) for int in ints])
         for cxt in [self.cxt12, self.cxt2, self.cxt23]:
-            for i in inspect_errors_a_12(cxt, [0, 1]):
+            print cxt
+            print
+            for i in inspect_direct(cxt, [0, 1]):
+                print i
+            print
+            print
+            for i in inspect_direct(cxt, [0, 1]):
                 assert not i.is_respected(cxt.get_object_intent_by_index(0))
                 assert not i.is_respected(cxt.get_object_intent_by_index(1))
                 #assert i.is_respected(cxt.get_object_intent_by_index(2))
@@ -96,18 +102,18 @@ class TestErrorFinder:
         for cxt in [self.cxt1, self.cxt3, self.cxt2, self.cxt4]:
             print '\n{0} = {1} is deleted\n'.format(cxt.objects[0],
                                                     cxt.get_object_intent_by_index(0))
-            for i in inspect_errors_a_12(cxt, [0,]):
+            for i in inspect_direct(cxt, [0,]):
                 print i
-            print 'inspect_errors_a_12 ended\n'
-            for i in inspect_dg_empty(cxt, (0,)):
+            print 'inspect_direct ended\n'
+            for i in inspect_dg(cxt, (0,)):
                 print i
-            print 'inspect_dg_empty ended\n'
+            print 'inspect_dg ended\n'
         
         for cxt in [self.cxt12, self.cxt23]:
             print '\n{0} and {1} are deleted\n'.format(cxt.objects[0], cxt.objects[1])
-            for i in inspect_errors_a_12(cxt, [0, 1]):
+            for i in inspect_direct(cxt, [0, 1]):
                 print i
-            print 'inspect_errors_a_12 ended\n'
-            for i in inspect_dg_empty(cxt, (0, 1)):
+            print 'inspect_direct ended\n'
+            for i in inspect_dg(cxt, (0, 1)):
                 print i
-            print 'inspect_dg_empty ended\n'
+            print 'inspect_dg ended\n'

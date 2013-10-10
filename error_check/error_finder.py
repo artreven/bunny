@@ -11,7 +11,7 @@ from fca.algorithms.closure_operators import oprime, aprime
 
 def split_implications(imps):
     """
-    Split implications from set imps in unit implications
+    Split implications from set imps into unit implications
     """
     unit_imps = set()
     for imp in imps:
@@ -21,7 +21,7 @@ def split_implications(imps):
             unit_imps.add( Implication(imp.premise, conclusion) )
     return unit_imps
 
-def inspect_dg_empty(cxt, objs_inds, imp_basis=None):
+def inspect_dg(cxt, objs_inds, imp_basis=None):
     """
     Finds those implication, that hold in context without objects but are not
     respected by objects
@@ -39,36 +39,44 @@ def inspect_dg_empty(cxt, objs_inds, imp_basis=None):
             result.append(imp)
     return result
 
-def inspect_errors_a_12(cxt_original, objs_indices):
+def inspect_direct(cxt_original, inspected_inds):
     """
-    Inspect objects objs_inds (indices) from cxt.
+    Inspect objects inspected_inds (indices) from cxt_original.
     
-    Returns a set of implications of Types A -> b and A -> not(b),
+    Returns the set of implications of Types A -> b and A -> not(b),
     that are respected by all the objects of the context,
-    but the objects objs_inds.
+    but not by the objects inspected_indices.
+    
+    When looking for errors in multiple objects the function find only common
+    errors, i.e. such unit implications that are not respected by all inspected
+    objects.
     """
-    obj_intents = [cxt_original.get_object_intent_by_index(obj_ind)
-                   for obj_ind in objs_indices]
-    new_inds = set(range(len(cxt_original))) - set(objs_indices)
+    inspected_ints = [cxt_original.get_object_intent_by_index(obj_ind)
+                      for obj_ind in inspected_inds]
+    # create nex cxt without inspected objects
+    new_inds = list( set(range(len(cxt_original))) - set(inspected_inds) )
     table = [cxt_original[i] for i in new_inds]
     objects = [cxt_original.objects[i] for i in new_inds]
     attributes = cxt_original.attributes
     cxt = Context(table, objects, attributes)
-        
-    common_attrs = reduce(set.intersection, obj_intents)
-    candidates = set([frozenset(int & common_attrs) for int in cxt.intents()])
+    
+    common_attrs = reduce(set.intersection, inspected_ints)
+    all_attrs = reduce(set.union, inspected_ints)
+    # create set of maximal (by intent) candidates
+    candidates = set([frozenset(intent & common_attrs)
+                      for intent in cxt.intents()])
     included = lambda x: not any([x < cand for cand in candidates])
-    candidates = filter(included, candidates)
+    max_candidates = filter(included, candidates)
     imps = set()
-    for cand in candidates:
+    for cand in max_candidates:
         cand_closure = oprime(aprime(cand, cxt), cxt)
         negated_attrs = set( map(lambda x: 'not ' + x,
                                  (common_attrs - cand)) )
         if negated_attrs != set():
             imps.add( Implication(cand, negated_attrs) )
-        if all([not (cand_closure <= obj_intent)
-                for obj_intent in obj_intents]):
-            imps.add( Implication(cand, (cand_closure - common_attrs)) )
+        # check that there appear new attrs in cand_closure compared to inspected intents
+        if not (cand_closure <= all_attrs):
+            imps.add( Implication(cand, (cand_closure - all_attrs)) )
     return imps
 
 def make_dual_imps(imps):

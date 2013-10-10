@@ -13,7 +13,7 @@ from copy import deepcopy
 
 from fca import Context
 
-from error_check.error_finder import inspect_errors_a_12 as inspect_errors
+from error_check.error_finder import inspect_direct as inspect_errors
 from error_check.error_finder import minimize_premise
 
 
