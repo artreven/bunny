@@ -154,7 +154,7 @@ class Term(object):
         return cls(func_str, name, var_count)
     
     
-def generate_ts(len_limit, num_vars=1):
+def generate_ts(len_limit_elems, len_limit_ops, num_vars=1):
     '''
     Generates terms of size up to 2*len_limit. Size := length(ops_list) + 
                                                        length(vars_list),
@@ -168,12 +168,12 @@ def generate_ts(len_limit, num_vars=1):
     name = 'Missing'
     num_types = 3
     elems_ls = []
-    for len_vars in range(1, len_limit + 1):
+    for len_vars in range(1, len_limit_elems + 1):
         elems = itertools.product(*itertools.repeat(range(num_vars),
                                                     len_vars))
         elems_ls += [list(i) for i in elems]
     ops_ls = []
-    for len_ops in range(len_limit + 1):
+    for len_ops in range(len_limit_ops + 1):
         orders = itertools.permutations(range(len_ops), len_ops)
         orders_ls = [list(i) for i in orders]
         types = itertools.product(*itertools.repeat(range(num_types),

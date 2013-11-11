@@ -89,32 +89,24 @@ id68 = be.Identity.make_identity('-x', 'y*x')
 id69 = be.Identity.make_identity('-x', 'y*y')
 id70 = be.Identity.make_identity('-x', 'y*z')
 
+####SIZE = 6
+id71 = be.Identity.make_identity('a*x', '-(-a)')
+id72 = be.Identity.make_identity('a*x', '-(-x)')
+id73 = be.Identity.make_identity('a*x', 'a*a')
+id74 = be.Identity.make_identity('a*x', 'a*x')
+id75 = be.Identity.make_identity('a*x', 'x*a')
+id76 = be.Identity.make_identity('a*x', 'x*x')
+id77 = be.Identity.make_identity('a*x', 'x*y')
+id78 = be.Identity.make_identity('(-a)*x', '-x')
+id79 = be.Identity.make_identity('x*x', '-(-x)')
+id80 = be.Identity.make_identity('x*x', 'a*x')
+id81 = be.Identity.make_identity('x*x', 'x*a')
+id82 = be.Identity.make_identity('x*x', 'x*x')
+id83 = be.Identity.make_identity('x*x', 'x*y')
+id84 = be.Identity.make_identity('x*y', 'y*x')
 
-
-id20 = be.Identity.make_identity('a', '-(-(-a))')
-id24 = be.Identity.make_identity('a', '(-a)*a')
-id32 = be.Identity.make_identity('a', '-(a*a)')
-id33 = be.Identity.make_identity('a', '-(a*x)')
-id50 = be.Identity.make_identity('x', '(-a)*x')
-id51 = be.Identity.make_identity('x', '(-x)*a')
-
-id56 = be.Identity.make_identity('x', '-(x*a)')
-
-id6 = be.Identity.make_identity('a', '-(-a)')
-id22 = be.Identity.make_identity('a', 'a*(-a)')
-id24 = be.Identity.make_identity('a', '(-a)*a')
-id27 = be.Identity.make_identity('a', 'x*(-x)')
-id39 = be.Identity.make_identity('-a', 'a*a')
-id46 = be.Identity.make_identity('x', 'x*(-a)')
-id50 = be.Identity.make_identity('x', '(-a)*x')
-id55 = be.Identity.make_identity('x', '-(a*x)')
-id45 = be.Identity.make_identity('x', 'a*(-x)')
-id25 = be.Identity.make_identity('a', '(-a)*x')
-id33 = be.Identity.make_identity('a', '-(a*x)')
-id52 = be.Identity.make_identity('x', '(-x)*x')
-id57 = be.Identity.make_identity('x', '-(x*x)')
-id40 = be.Identity.make_identity('-a', 'a*x')
-
+id85 = be.Identity.make_identity('x*(-x)', '(-x)*x')
+id86 = be.Identity.make_identity('x*(y*z)', '(x*y)*z')
 
 id_ls = [id1, id2, id3, id4, id5, id6, id7, id8, id9, id10,
          id11, id12, id13, id14, id15, id16, id17, id18, id19, id20,
@@ -122,7 +114,9 @@ id_ls = [id1, id2, id3, id4, id5, id6, id7, id8, id9, id10,
          id31, id32, id33, id34, id35, id36, id37, id38, id39, id40,
          id41, id42, id43, id44, id45, id46, id47, id48, id49, id50,
          id51, id52, id53, id54, id55, id56, id57, id58, id59, id60,
-         id61, id62, id63, id64, id65, id66, id67, id68, id69, id70]
+         id61, id62, id63, id64, id65, id66, id67, id68, id69, id70,
+         id71, id72, id73, id74, id75, id76, id77, id78, id79, id80,
+         id81, id82, id83, id84, id85, id86]
 
 ###############################################################################
 def init_cxt(size):

@@ -39,26 +39,18 @@ def inspect_dg(cxt, objs_inds, imp_basis=None):
             result.append(imp)
     return result
 
-def inspect_direct(cxt_original, inspected_inds):
+def inspect_direct(cxt, inspected_ints):
     """
-    Inspect objects inspected_inds (indices) from cxt_original.
+    Inspect given inspected_ints.
     
     Returns the set of implications of Types A -> b and A -> not(b),
-    that are respected by all the objects of the context,
-    but not by the objects inspected_indices.
+    that are respected by all the object intents of the context,
+    but not by the inspected_ints.
     
-    When looking for errors in multiple objects the function find only common
+    When looking for errors in multiple intents the function find only common
     errors, i.e. such unit implications that are not respected by all inspected
-    objects.
+    intents.
     """
-    inspected_ints = [cxt_original.get_object_intent_by_index(obj_ind)
-                      for obj_ind in inspected_inds]
-    # create nex cxt without inspected objects
-    new_inds = list( set(range(len(cxt_original))) - set(inspected_inds) )
-    table = [cxt_original[i] for i in new_inds]
-    objects = [cxt_original.objects[i] for i in new_inds]
-    attributes = cxt_original.attributes
-    cxt = Context(table, objects, attributes)
     
     common_attrs = reduce(set.intersection, inspected_ints)
     all_attrs = reduce(set.union, inspected_ints)
@@ -70,13 +62,27 @@ def inspect_direct(cxt_original, inspected_inds):
     imps = set()
     for cand in max_candidates:
         cand_closure = oprime(aprime(cand, cxt), cxt)
-        negated_attrs = set( map(lambda x: 'not ' + x,
+        negated_attrs = set( map(lambda x: 'not ' + x 
+                                 if (re.match(r'not ', x) == None)
+                                 else x[4:],
                                  (common_attrs - cand)) )
         if negated_attrs != set():
             imps.add( Implication(cand, negated_attrs) )
         # check that there appear new attrs in cand_closure compared to inspected intents
         if not (cand_closure <= all_attrs):
             imps.add( Implication(cand, (cand_closure - all_attrs)) )
+    return imps
+
+def inspect_direct_with_inverted(cxt, inspected_ints):
+    imps = inspect_direct(cxt, inspected_ints)    
+    inverted_cxt = cxt.inverted()
+    inverted_inspected_ints = []
+    for intent in inspected_ints:
+        intent = set(['not ' + str(attr)
+                      for attr in cxt.attributes
+                      if not attr in intent])
+        inverted_inspected_ints.append(intent)
+    imps |= inspect_direct(inverted_cxt, inverted_inspected_ints)
     return imps
 
 def make_dual_imps(imps):
