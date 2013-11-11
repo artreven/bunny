@@ -73,16 +73,16 @@ def inspect_direct(cxt, inspected_ints):
             imps.add( Implication(cand, (cand_closure - all_attrs)) )
     return imps
 
-def inspect_direct_with_inverted(cxt, inspected_ints):
+def inspect_direct_with_complementary(cxt, inspected_ints):
     imps = inspect_direct(cxt, inspected_ints)    
-    inverted_cxt = cxt.inverted()
-    inverted_inspected_ints = []
+    complementary_cxt = cxt.complementary()
+    complementary_inspected_ints = []
     for intent in inspected_ints:
         intent = set(['not ' + str(attr)
                       for attr in cxt.attributes
                       if not attr in intent])
-        inverted_inspected_ints.append(intent)
-    imps |= inspect_direct(inverted_cxt, inverted_inspected_ints)
+        complementary_inspected_ints.append(intent)
+    imps |= inspect_direct(complementary_cxt, complementary_inspected_ints)
     return imps
 
 def make_dual_imps(imps):
