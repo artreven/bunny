@@ -3,7 +3,7 @@ from fca import read_txt_with_names
 
 #from bunny_exploration.tab_separated_objs_names import read_txt_objs_names
 from error_check.error_finder import *
-#from fca import Context, Implication
+from fca import Context, Implication
 #from suspicion_support import *
 
 class TestErrorFinder:

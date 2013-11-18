@@ -39,3 +39,4 @@ nosetests.xml
 .pydevproject
 error_check/data_sets
 error_check/data_sets
+bunny_exploration/conexp_clj.py

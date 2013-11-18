@@ -59,11 +59,11 @@ def mace4(imp_ls, destination, wait_time=1):
 
 def prover9(imp_ls, destination, wait_time=2):
     """
-    Runs Prover9 with implications as theorems to reject.
+    Runs Prover9 with implications as theorems to prove.
     Result is written in many files!
     
-    @param destination: where output file of mace4 go
-    @param wait_time: time constraint for mace4
+    @param destination: where output file of prover9 go
+    @param wait_time: time constraint for prover9
     @return: list of proven atomic imps, list of not proven atomic imps
     """
     sos = 'formulas(sos).\n'
