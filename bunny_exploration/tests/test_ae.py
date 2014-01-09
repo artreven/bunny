@@ -16,9 +16,9 @@ import bunny_exploration as be
 class Test:
     def setUp(self):
         id_ls = []
-        id_ls.append(be.Identity.make_identity('x', 'a*(-x)'))
-        id_ls.append(be.Identity.make_identity('x', '-(a*x)'))
-        id_ls.append(be.Identity.make_identity('a', '-(a*a)'))
+        id_ls.append(be.Identity.make_identity('x=a*(-x)'))
+        id_ls.append(be.Identity.make_identity('x=-(a*x)'))
+        id_ls.append(be.Identity.make_identity('a=-(a*a)'))
         bun = be.Bunny({(0,0):0}, {0:0}, 0, 0, 0)
         #bun_name = str(bun.index) + ' ' + str(bun.size)
         table = [[bun.check_id(id_ls[i]) for i in range(len(id_ls))], ]

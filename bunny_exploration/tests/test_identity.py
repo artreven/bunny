@@ -11,7 +11,7 @@ from bunny_exploration.identity import *
 def test_make_identity():
     left_str = 'x'
     right_str = '-(a*x)'
-    iden = Identity.make_identity(left_str, right_str)
+    iden = Identity.make_identity(left_str + '=' + right_str)
     left_term = Term.parsed2term(bunny_exploration.term_parser.parse_str(left_str))
     right_term = Term.parsed2term(bunny_exploration.term_parser.parse_str(right_str))
     print 'id: ', iden

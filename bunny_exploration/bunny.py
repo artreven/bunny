@@ -3,7 +3,7 @@ Created on Apr 28, 2013
 
 @author: artem
 '''
-import time
+#import time
 import itertools
 import signal
 from contextlib import contextmanager
@@ -566,131 +566,11 @@ def inf_bunnies(id_pos_ls, id_neg):
             yield InfBunny(f2_d, f1_d)
         
 ######################IF MAIN ROUTINE##################################
-def nth(iterable, n, default=None):
-    "Returns the nth item or a default value"
-    import itertools
-    return next(itertools.islice(iterable, n, None), default)
+#def nth(iterable, n, default=None):
+#    "Returns the nth item or a default value"
+#    return next(itertools.islice(iterable, n, None), default)
 
 if __name__ == '__main__':
-    pass
-
-
-
-
-
-        
-###############################GENERATION OF INFINITE BUNNIES##############
-import sympy
-
-def constraints(id_ls):
-    '''
-    Find the constraints coming from list of identities id_ls. Symbolic calculus
-    is used.
-    '''
-    def replace(sym_str, pattern):
-        replaced = sym_str.replace(pattern[0], pattern[1])
-        if sym_str == replaced:
-            return replaced
-        else:
-            return replace(replaced, pattern)
-    def make_sym(func_str):
-        sym_str = sympy.sympify(func_str).subs({a: a, b: b, c: c, d: d, e: e,
-                                                f2: f2, f1: f1, f0: 0})
-        return sym_str
-    
-    a, b, c, d, e = sympy.symbols('a, b, c, d, e')
-    # TODO: do it better for the case id_ls == []
-    if not id_ls:
-        return [{a: a},]
-    f0 = sympy.symbols('f0')
-    f1 = sympy.Function('f1')
-    f2 = sympy.Function('f2')
-    pattern2 = (f2, lambda m, n: a*m + b*n + c)
-    pattern1 = (f1, lambda n: d*n + e)
-    
-    eq_ls = []
-    for id_ in id_ls:
-        if ((str(id_).find('x') == -1) and
-            (str(id_).find('y') == -1) and
-            (str(id_).find('z') == -1)):
-                continue
-        left_repl = replace(replace(make_sym(id_.left_term.func_str),
-                                    pattern1), pattern2)
-        right_repl = replace(replace(make_sym(id_.right_term.func_str),
-                                     pattern1), pattern2)
-        eq_ls.append(left_repl - right_repl)
-    try:
-        sol = sympy.solve(eq_ls, a, b, c, d, e, dict=True)
-    except NotImplementedError:
-        sol = [{a: a},]
-    return sol
-
-def inf_bunnies2(id_pos_ls, id_neg):
-    '''
-    Create infinite bunnies that satisfy all id_pos_ls. See the pattern in all_f.
-    '''
-    a, b, c, d, e, m, n = sympy.symbols('a, b, c, d, e, m, n')
-    constrs = constraints(id_pos_ls)[0]
-    
-    f0 = 0
-    all_f = (({(0,0): b00, (0,1): b01,
-               (1,0): b10, (1,1): b11,
-               'condition1': (lambda m, n: (n in [0,1]) and (m >= 2),
-                              lambda m, n: a1*m + b1*n + c1,
-                              '(n in [0,1]) and (m >= 2)',
-                              '{0}*m + {1}*n + {2}'.format(a1, b1, c1)),
-               'condition2': (lambda m, n: (m in [0,1]) and (n >= 2), 
-                              lambda m, n: a2*m + b2*n + c2,
-                              '(m in [0,1]) and (n >= 2)',
-                              '{0}*m + {1}*n + {2}'.format(a2, b2, c2)),
-               'condition3': (lambda m, n: (m == n),
-                              lambda m, n: a3*m + b3*n + c3,
-                              '(m == n)',
-                              '{0}*m + {1}*n + {2}'.format(a3, b3, c3)),
-               'condition4': (lambda m, n: (m >= 2) and (n >= 2),
-                              lambda m, n: a4*m + b4*n + c4,
-                              '(m >= 2) and (n >= 2)',
-                              '{0}*m + {1}*n + {2}'.format(a4, b4, c4))},
-              
-              {0: u0, 1: u1,
-               'condition1': (lambda n: n>0,
-                              lambda n: d1*n + e1,
-                              'n>0',
-                              '{0}*n + {1}'.format(d1, e1))})
-             
-             for b00 in range(3)
-             for b10 in range(4)
-             for b01 in range(4)
-             for b11 in range(4)
-             
-             for u0 in range(3)
-             for u1 in range(4) 
-                      
-             for d1 in [0, 1, 2]
-             for e1 in [0, 1, -1, 2, -2]
-             if (d1*2 + e1 >= 0)
-                          
-             for a1 in [0, 1]
-             for b1 in [0, 1]
-             for c1 in [0, 1, -1, 2, -2, 3]
-             if (a1*2 + c1 >= 0)
-             
-             for a2 in [0, 1]
-             for b2 in [0, 1]
-             for c2 in [0, 1, -1, 2, -2, 3]
-             if (b2*2 + c2 >= 0)
-             
-             for a3 in [0, 1]
-             for b3 in [0, 1]
-             for c3 in [0, 1, -1, 2, -2, 3, -3]
-             if (a3*2 + b3*2 + c3 >= 0)
-             
-             for a4 in [0, 1]
-             for b4 in [0, 1]
-             for c4 in [0, 1, -1, 2, -2, 3, -3]
-             if (a4*3 + b4*2 + c4 >= 0)
-             if (a4*2 + b4*3 + c4 >= 0)
-             )
-    
-    for f2_dict, f1_dict in all_f:
-        yield InfBunny(f2_dict, f1_dict)
+    id1 = identity.Identity.make_identity('x', 'a*(-x)')
+    id2 = identity.Identity.make_identity('x', '-(a*x)')
+    print next(inf_bunnies([id1,], id2))

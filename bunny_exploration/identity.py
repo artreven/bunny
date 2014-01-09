@@ -57,17 +57,25 @@ class Identity(object):
         self.var_count = max([left_term.var_count, right_term.var_count])
         
     def __repr__(self):
-        return str(self.left_term.name) + ' = ' + str(self.right_term.name)
+        return (str(self.left_term.name).strip() + ' = ' +
+                str(self.right_term.name).strip())
     
     @classmethod
-    def make_identity(cls, left_str, right_str):
+    def make_identity(cls, id_str):
         '''
-        make identity from two strings
+        make identity from string
         '''
+        left_str, right_str = map(lambda x: x.strip(), id_str.split('='))
         left_term = Term.str2term(left_str)
         right_term = Term.str2term(right_str)
         
         return cls(left_term, right_term)
+    
+    def __eq__(self, other):
+        return self.__repr__() == other.__repr__()
+        
+    def __hash__(self):
+        return self.__repr__().__hash__()
     
     
 class Term(object):
@@ -212,10 +220,11 @@ def generate_ts(len_limit, num_vars=1):
     
 def generate_ids(len_limit, num_vars=2):
     '''
-    Generates non-equivalent identities of size len_limit. The non-equality is
-    checked via theorem prover Prover9. Identities are said to be equivalent if
-    the imply each other. Examples: x=y <=> x=z, x*a=a <=> y*a=a. 
+    Generates identities of size len_limit. Identities are said to be equivalent if
+    they imply each other. Examples: x=y <=> x=z, x*a=a <=> y*a=a. At least
+    some of them are filtered out, see not_equivalent function.
     Size := length(left_term) + length(right_term).
+    The identities 'x=x', 'x=y', '-a=-x' are not produced => add them manually.
                                                     
                                                
     @param len_limit: length limit of identity.
@@ -223,29 +232,31 @@ def generate_ids(len_limit, num_vars=2):
     '''
     def not_equivalent(ids, left_term, right_term):
         '''
-        True if among ids there is no equivalent identity to new_id, otherwise
-        False.
+        True if among ids there is no equivalent identity to left_term \equiv
+        right_term, otherwise False.
         '''
         for var in 'xyzw':
-            if ((left_term.func_str.strip('').startswith(var) and 
+            # equiv if either term is single variable not occuring in other term
+            if ((left_term.func_str.strip() == var and 
                  not var in right_term.func_str) or
-                (right_term.func_str.strip('').startswith(var) and 
+                (right_term.func_str.strip() == var and 
                  not var in left_term.func_str)):
                     return False
-            elif ((left_term.func_str.strip('').startswith('f1({})'.format(var)) and
+            # -a=-x is always given, therefore we do not need anything like
+            # -var = -something, where var not in something.
+            elif ((left_term.func_str.strip('') == 'f1({})'.format(var) and
                    right_term.func_str.strip('').startswith('f1(') and
-                   not var in right_term.func_str.strip('') and
-                   not 'f2' in right_term.func_str.strip('')) or
-                  (right_term.func_str.strip('').startswith('f1({})'.format(var)) and
+                   not var in right_term.func_str) or
+                  (right_term.func_str.strip('') == 'f1({})'.format(var) and
                    left_term.func_str.strip('').startswith('f1(') and
-                   not var in left_term.func_str.strip('') and
-                   not 'f2' in left_term.func_str.strip(''))):
+                   not var in left_term.func_str)):
                 return False
         str_ids = map(str, ids)
         str_new_id1 = left_term.func_str + ' = ' + right_term.func_str
         str_new_id2 = right_term.func_str + ' = ' + left_term.func_str
         vars_perms = map(''.join, itertools.permutations('xyzw', 4))
         for to in vars_perms:
+            # filter out if equivalent from permutation of variables
             trans_table = maketrans('xyzw', to)
             equiv_id1 = str_new_id1.translate(trans_table)
             equiv_id2 = str_new_id2.translate(trans_table)
@@ -281,6 +292,5 @@ if __name__ == '__main__':
         print '\n'.join(map(str, g))
         print '\ntotal: ', len(g)
         return g
-    #for i in g:
-    #    print i.func_str
-    #print '\ntotal: ', len(g)
+    for i in range(7):
+        print_ids(i, 3)
