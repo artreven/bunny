@@ -1,7 +1,6 @@
 *.py[cod]
 *.log
 .settings
-bunny_exploration/70ids*
 
 # C extensions
 *.so
@@ -35,8 +34,9 @@ nosetests.xml
 
 # Mr Developer
 .mr.developer.cfg
+
 .project
 .pydevproject
 error_check/data_sets
 error_check/data_sets
-bunny_exploration/conexp_clj.py
+src/bunny_exploration/70ids*

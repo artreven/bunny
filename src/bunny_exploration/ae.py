@@ -62,9 +62,9 @@ class AE(object):
         te = time.time()
         m = '\nIt took {} seconds to compute the canonical basis.\n'.format(te-ts)
         print m
-        with open(self.dest + '/progress.txt', 'a') as file:
-            file.write(m)
-        file.close()
+        with open(self.dest + '/progress.txt', 'a') as f:
+            f.write(m)
+        f.close()
         unit_basis = []
         for imp in basis:
             for j in (imp.conclusion - imp.premise):
@@ -92,21 +92,21 @@ class AE(object):
         self._delete_proofs()
         
     def _output_imps(self):
-        with open(self.dest + '/proved.txt', 'w') as file:
-            file.write('Proved Implications:\n')
+        with open(self.dest + '/proved.txt', 'w') as f:
+            f.write('Proved Implications:\n')
             for imp in self.proved:
-                file.write(str(imp) + '\n')
-        file.close()
-        with open(self.dest + '/not_proved.txt', 'w') as file:
-            file.write('Not Proved Implications:\n')
+                f.write(str(imp) + '\n')
+        f.close()
+        with open(self.dest + '/not_proved.txt', 'w') as f:
+            f.write('Not Proved Implications:\n')
             for imp in self.not_proved:
-                file.write(str(imp) + '\n')
-        file.close()
+                f.write(str(imp) + '\n')
+        f.close()
         
     def _output_cxt(self):
-        with open(self.dest + '/cxt.txt', 'w') as file:
-            file.write(str(self.cxt) + '\n')
-        file.close()
+        with open(self.dest + '/cxt.txt', 'w') as f:
+            f.write(str(self.cxt) + '\n')
+        f.close()
         
     def add_object(self, row, object_name):
         self.cxt.add_object(row, object_name)
@@ -140,9 +140,9 @@ class AE(object):
         m += '{} unit implication proved\n'.format(len(self.proved))
         m += '{} unit implication not proved\n'.format(len(self.not_proved))
         #print
-        with open(self.dest + '/progress.txt', 'a') as file:
-            file.write(m)
-        file.close()
+        with open(self.dest + '/progress.txt', 'a') as f:
+            f.write(m)
+        f.close()
         self._output_imps()
         print m
         return (self.proved, self.not_proved)
@@ -179,15 +179,15 @@ class AE(object):
         self.cxt = self.cxt.reduce_objects()
         m += '{} Objects left after reducing\n'.format(len(self.cxt.objects))
         # print
-        with open(self.dest + '/progress.txt', 'a') as file:
-            file.write(m)
-        file.close()
-        with open(self.dest + '/step{}ces.txt'.format(self.step), 'w') as file:
-            file.write('\tCounter-examples:\n')
+        with open(self.dest + '/progress.txt', 'a') as f:
+            f.write(m)
+        f.close()
+        with open(self.dest + '/step{}ces.txt'.format(self.step), 'w') as f:
+            f.write('\tCounter-examples:\n')
             for imp, ce in ce_dict.items():
-                file.write(str(imp) + '\n' + str(ce) + '\n\n')
-            file.write('\n\n\n\t Context:\n' + str(self.cxt))
-        file.close()
+                f.write(str(imp) + '\n' + str(ce) + '\n\n')
+            f.write('\n\n\n\t Context:\n' + str(self.cxt))
+        f.close()
         print m
         return ce_dict
     
@@ -207,9 +207,9 @@ class AE(object):
         m = '_'*80 + '\n'
         m += '\tSTEP TIME: {} sec\n\n\n'.format(te - ts)
         print m
-        with open(self.dest + '/progress.txt', 'a') as file:
-            file.write(m)
-        file.close()
+        with open(self.dest + '/progress.txt', 'a') as f:
+            f.write(m)
+        f.close()
         # if no CE found try to prove
         if (not any(ce_dict.values())):
             self._output_cxt()

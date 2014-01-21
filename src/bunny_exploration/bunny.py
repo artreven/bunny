@@ -566,10 +566,6 @@ def inf_bunnies(id_pos_ls, id_neg):
             yield InfBunny(f2_d, f1_d)
         
 ######################IF MAIN ROUTINE##################################
-#def nth(iterable, n, default=None):
-#    "Returns the nth item or a default value"
-#    return next(itertools.islice(iterable, n, None), default)
-
 if __name__ == '__main__':
     id1 = identity.Identity.make_identity('x', 'a*(-x)')
     id2 = identity.Identity.make_identity('x', '-(a*x)')
