@@ -18,7 +18,7 @@ class ArgError(Exception):
     def __init__(self, vals, f_name):
         self.vals = vals
         self.f_name = f_name
-        self.message = 'For input {} function {} is not defined'.format(vals,
+        self.message = 'For input {0} function {0} is not defined'.format(vals,
                                                                         f_name)
     def __str__(self):
         return self.message
@@ -74,7 +74,7 @@ class Bunny(object):
         if self.size.__class__.__name__ != 'int':
             raise Exception('Size not int')
         size = self.size
-        s = '\tBUNNY No {}'.format(self.index) + '\n'
+        s = '\tBUNNY No {0}'.format(self.index) + '\n'
         s += ('f2\t' + '\t'.join(map(str, range(size))) +
              '\t\tf1' + '\t\t\tf0' + '\n')
         for i in range(size):
@@ -121,10 +121,10 @@ class Bunny(object):
                             left_val = id_.left_term(self, values)
                         except ArgError as e:
                             if not partial:
-                                info = 'id: {}, '.format(id_)
-                                info += 'values = {}, '.format(values)
-                                info += 'left.func_str = {}, '.format(id_.left_term.func_str)
-                                info += 'Bunny: {}'.format(self.__repr__())
+                                info = 'id: {0}, '.format(id_)
+                                info += 'values = {0}, '.format(values)
+                                info += 'left.func_str = {0}, '.format(id_.left_term.func_str)
+                                info += 'Bunny: {0}'.format(self.__repr__())
                                 raise Exception, info
                             needed = (e.vals, e.f_name)
                             return (None, needed)
@@ -133,10 +133,10 @@ class Bunny(object):
                                 right_val = id_.right_term(self, values)
                             except ArgError as e:
                                 if not partial:
-                                    info = 'id: {}, '.format(id_)
-                                    info += 'values = {}, '.format(values)
-                                    info += 'right.func_str = {}\n'.format(id_.right_term.func_str)
-                                    info += 'Bunny: {}'.format(self.__repr__())
+                                    info = 'id: {0}, '.format(id_)
+                                    info += 'values = {0}, '.format(values)
+                                    info += 'right.func_str = {0}\n'.format(id_.right_term.func_str)
+                                    info += 'Bunny: {0}'.format(self.__repr__())
                                     raise Exception, info
                                 needed = (e.vals, e.f_name)
                                 return (None, needed)
@@ -473,7 +473,7 @@ def domain(field):
         elif (field[1] < 2) and (field[0] < 2):
             dom = iter(range(4))
     if not dom:
-        raise ValueError('field = {}, dom is not defined.'.format(field))
+        raise ValueError('field = {0}, dom is not defined.'.format(field))
     return (field, dom)
 
 def construct(id_ls, id_neg):

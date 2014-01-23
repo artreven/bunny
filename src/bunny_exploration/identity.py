@@ -106,9 +106,9 @@ class Term(object):
             exec(func_symbol + ' = algebra.' + func_symbol)
         result = eval(self.compiled_str)
         if isinstance(result, int) and (result < 0):
-            info = 'result = {}, '.format(result)
-            info += 'values = {}, '.format(values)
-            info += 'func_str = {}'.format(self.func_str)
+            info = 'result = {0}, '.format(result)
+            info += 'values = {0}, '.format(values)
+            info += 'func_str = {0}'.format(self.func_str)
             raise NotInUniverseError(info)
         return result
          
