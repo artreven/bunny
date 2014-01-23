@@ -258,10 +258,10 @@ def generate_ids(len_limit, num_vars=2):
                     return False
             # -a=-x is always given, therefore we do not need anything like
             # -var = -something, where var not in something.
-            elif ((left_term.func_str.strip('') == 'f1({})'.format(var) and
+            elif ((left_term.func_str.strip('') == 'f1({0})'.format(var) and
                    right_term.func_str.strip('').startswith('f1(') and
                    not var in right_term.func_str) or
-                  (right_term.func_str.strip('') == 'f1({})'.format(var) and
+                  (right_term.func_str.strip('') == 'f1({0})'.format(var) and
                    left_term.func_str.strip('').startswith('f1(') and
                    not var in left_term.func_str)):
                 return False
@@ -306,5 +306,5 @@ if __name__ == '__main__':
         print '\n'.join(map(str, g))
         print '\ntotal: ', len(g)
         return g
-    for i in range(7):
+    for i in range(5):
         print_ids(i, 3)

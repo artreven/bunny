@@ -60,7 +60,7 @@ class AE(object):
         ts = time.time()
         basis = self.cxt.attribute_implications
         te = time.time()
-        m = '\nIt took {} seconds to compute the canonical basis.\n'.format(te-ts)
+        m = '\nIt took {0} seconds to compute the canonical basis.\n'.format(te-ts)
         print m
         with open(self.dest + '/progress.txt', 'a') as f:
             f.write(m)
@@ -136,9 +136,9 @@ class AE(object):
         assert self.not_proved == not_proved
         # construct message
         m = '\n\n\n\tPROOF PHASE:\n'
-        m += 'It took {} seconds\n'.format(te)
-        m += '{} unit implication proved\n'.format(len(self.proved))
-        m += '{} unit implication not proved\n'.format(len(self.not_proved))
+        m += 'It took {0} seconds\n'.format(te)
+        m += '{0} unit implication proved\n'.format(len(self.proved))
+        m += '{0} unit implication not proved\n'.format(len(self.not_proved))
         #print
         with open(self.dest + '/progress.txt', 'a') as f:
             f.write(m)
@@ -171,18 +171,18 @@ class AE(object):
         self.cxt = self.cxt.reduce_objects()
         te = time.time() - ts
         # construct message
-        m = '\n\n\n\tCOUNTER-EXAMPLE FINDING PHASE: STEP {}\n'.format(self.step)
-        m += 'It took {} seconds.\n'.format(te)
-        m += 'Run on {} atomic implications.\n'.format(no_imps)
-        m += 'There were {} objects before the start of this step\n'.format(no_objs)
-        m += 'There were {} counter-examples found on this step\n'.format(len([x for x in ce_dict.values() if x != None]))
+        m = '\n\n\n\tCOUNTER-EXAMPLE FINDING PHASE: STEP {0}\n'.format(self.step)
+        m += 'It took {0} seconds.\n'.format(te)
+        m += 'Run on {0} atomic implications.\n'.format(no_imps)
+        m += 'There were {0} objects before the start of this step\n'.format(no_objs)
+        m += 'There were {0} counter-examples found on this step\n'.format(len([x for x in ce_dict.values() if x != None]))
         self.cxt = self.cxt.reduce_objects()
-        m += '{} Objects left after reducing\n'.format(len(self.cxt.objects))
+        m += '{0} Objects left after reducing\n'.format(len(self.cxt.objects))
         # print
         with open(self.dest + '/progress.txt', 'a') as f:
             f.write(m)
         f.close()
-        with open(self.dest + '/step{}ces.txt'.format(self.step), 'w') as f:
+        with open(self.dest + '/step{0}ces.txt'.format(self.step), 'w') as f:
             f.write('\tCounter-examples:\n')
             for imp, ce in ce_dict.items():
                 f.write(str(imp) + '\n' + str(ce) + '\n\n')
@@ -205,7 +205,7 @@ class AE(object):
         ce_dict = self.find_ces(ce_wait)
         te = time.time()
         m = '_'*80 + '\n'
-        m += '\tSTEP TIME: {} sec\n\n\n'.format(te - ts)
+        m += '\tSTEP TIME: {0} sec\n\n\n'.format(te - ts)
         print m
         with open(self.dest + '/progress.txt', 'a') as f:
             f.write(m)

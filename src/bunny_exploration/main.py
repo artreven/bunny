@@ -161,7 +161,7 @@ def ce_finder(basis, dest, wait):
                         ce_dict[atomic_imp] = bun
                         no_ces += 1
     inf = no_ces - fin
-    m = '\n\n\n***{} CEs found: {} finite and {} infinite\n'.format(no_ces, fin, inf)
+    m = '\n\n\n***{0} CEs found: {1} finite and {2} infinite\n'.format(no_ces, fin, inf)
     with open(dest + '/progress.txt', 'a') as file:
         file.write(m)
     file.close()

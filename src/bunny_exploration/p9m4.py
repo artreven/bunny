@@ -29,7 +29,7 @@ def mace4(imp_ls, destination, wait_time=1):
         for j in (imp.conclusion - imp.premise):
             count += 1
             file_name = (destination +
-                          r'/impl{}_{}.in'.format(imp_num, count))
+                          r'/impl{0}_{1}.in'.format(imp_num, count))
             with open(file_name, 'w') as file:
                 if imp.premise:
                     file.write(sos)
@@ -43,8 +43,8 @@ def mace4(imp_ls, destination, wait_time=1):
             file.close()
     
             output = (destination +
-                      r'/impl{}_{}_mace4.out'.format(imp_num, count))
-            call_str = 'mace4 -t {} -N 25 -f '.format(wait_time)
+                      r'/impl{0}_{1}_mace4.out'.format(imp_num, count))
+            call_str = 'mace4 -t {0} -N 25 -f '.format(wait_time)
             call_str += file_name + ' > ' + output
             with open(os.devnull, "w") as fnull:
                 if subprocess.call(call_str,
@@ -79,7 +79,7 @@ def prover9(imp_ls, destination, wait_time=2):
         for j in (imp.conclusion - imp.premise):
             count += 1          
             file_name = (destination +
-                          r'/impl{}_{}.in'.format(imp_num, count))
+                          r'/impl{0}_{1}.in'.format(imp_num, count))
             with open(file_name, 'w') as file:
                 if imp.premise:
                     file.write(sos)
@@ -93,9 +93,9 @@ def prover9(imp_ls, destination, wait_time=2):
             file.close()
 
             output = (destination +
-                      r'/impl{}_{}.prover9.out'.format(imp_num, count))
+                      r'/impl{0}_{1}.prover9.out'.format(imp_num, count))
             
-            call_str = 'prover9 -t {} -f '.format(wait_time)
+            call_str = 'prover9 -t {0} -f '.format(wait_time)
             call_str += file_name + ' > ' + output
             with open(os.devnull, "w") as fnull:
                 if subprocess.call(call_str,
