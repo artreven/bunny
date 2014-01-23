@@ -15,9 +15,11 @@ class ArgError(Exception):
     """
     Thrown when function is not defined for input values
     """
-    def __init__(self, vals, f):
+    def __init__(self, vals, f_name):
         self.vals = vals
-        self.message = 'For input {} function {} is not defined'.format(vals, f)
+        self.f_name = f_name
+        self.message = 'For input {} function {} is not defined'.format(vals,
+                                                                        f_name)
     def __str__(self):
         return self.message
     
@@ -53,8 +55,8 @@ class Bunny(object):
         self.f2_dict = f2_dict
         self.f1_dict = f1_dict
         self.f0_dict = f0_dict
-        self.f2 = generate_f(f2_dict)
-        self.f1 = generate_f(f1_dict)
+        self.f2 = generate_f(f2_dict, 'f2')
+        self.f1 = generate_f(f1_dict, 'f1')
         self.f0 = f0_dict
         if size == None:
             self.size = len(self.f1_dict)
@@ -99,17 +101,16 @@ class Bunny(object):
         @param limit: checks up to this limit
         @param partial: if partially defined f2 and f1 are accepted. In this
         case None is a valid result.
-        @return: 1) partial =  False => returns result
-                 2) partial == True  => returns two values: (result, binding);
-                                        bindings - constraints on not defined
-                                        in f2 or f1 values, if any arise.
+        @return: 1) *partial* == False => returns *result*
+                 2) *partial* == True  => returns two values: (*result*, *values*);
+                                          *values* - input for which functions
+                                          should be defined next.
         '''
         if isinstance(self.size, int):
             limit = self.size
         assert limit != None
         
-        result = True
-        needed = []
+        #needed = []
         # substitutions. After every loop checks number of variables
         for w in xrange(limit):
             for z in xrange(limit):
@@ -124,9 +125,9 @@ class Bunny(object):
                                 info += 'values = {}, '.format(values)
                                 info += 'left.func_str = {}, '.format(id_.left_term.func_str)
                                 info += 'Bunny: {}'.format(self.__repr__())
-                                raise identity.NoneValueError(info)
-                            needed.append(e.vals)
-                            result = left_val = None
+                                raise Exception, info
+                            needed = (e.vals, e.f_name)
+                            return (None, needed)
                         else:
                             try:
                                 right_val = id_.right_term(self, values)
@@ -136,9 +137,9 @@ class Bunny(object):
                                     info += 'values = {}, '.format(values)
                                     info += 'right.func_str = {}\n'.format(id_.right_term.func_str)
                                     info += 'Bunny: {}'.format(self.__repr__())
-                                    raise identity.NoneValueError(info)
-                                needed.append(e.vals)
-                                result = right_val = None
+                                    raise Exception, info
+                                needed = (e.vals, e.f_name)
+                                return (None, needed)
                             else:
                                 # Nothing to do if left_val == right_val
                                 if left_val != right_val:
@@ -149,7 +150,7 @@ class Bunny(object):
                     break
             if id_.var_count <= 3:
                 break
-        return result if not partial else (result, needed)
+        return True if not partial else (True, [])
 
         
 class InfBunny(Bunny):
@@ -218,7 +219,7 @@ class InfBunny(Bunny):
         print 'No infinite bunny found'
         return None
     
-def generate_f(dict_values):
+def generate_f(dict_values, f_name):
     '''
     Make function from dict_values. 
     '''
@@ -229,13 +230,13 @@ def generate_f(dict_values):
         except KeyError:
             conds = [(cond_case[0], cond_case[1])
                      for (name, cond_case) in sorted(dict_values.items())
-                     if ((name.__class__.__name__ == 'str') and
-                         name.startswith('condition'))]
+                     if (isinstance(name, str) and name.startswith('condition'))]
             for (cond, case) in conds:
                 if cond(*args):
                     return case(*args)
             else:
                 raise ArgError(args, f.__name__)
+    f.__name__ = f_name
     return dict_values if hasattr(dict_values, '__call__') else f
 
 @contextmanager
@@ -311,9 +312,9 @@ def finish(f2_dict, f1_dict):
     Finalize partially defined f2 and f1 to total functions.  
     """
     def add_val(fs, field, dom):
-        return (dict(f_d.items() + {field[0]: i}.items())
+        return (dict(f_d.items() + {field: i}.items())
                 for f_d in fs
-                for i in dom) 
+                for i in dom)
         
     normal_vals2 = [(0, 0), (0, 1), (1, 0), (1, 1),
                     (2, 2),
@@ -331,25 +332,25 @@ def finish(f2_dict, f1_dict):
     f1s = [f1_dict,]
     for val in normal_vals2:
         (field, dom) = domain(val)
-        if not (field[0] in f2_dict.keys()):
+        if not (field in f2_dict.keys()):
             f2s = add_val(f2s, field, dom)
     for val in normal_vals1:
         (field, dom) = domain(val)
-        if not (field[0] in f1_dict.keys()):
+        if not (field in f1_dict.keys()):
             f1s = add_val(f1s, field, dom)
     return itertools.product(f2s, f1s)
 
 def domain(field):
     """
-    return next field and possible values for this field
+    @return: next field and possible values for this field
     """
     dom = None
+    if hasattr(field, '__len__') and len(field) == 1:
+        field = field[0]
+    # Case for unary function
     if isinstance(field, int):
-        field = (field,)
-    # Case for f1
-    if len(field) == 1:
-        if field[0] >= 3:
-            field = ('condition1', 1)
+        if field >= 3:
+            field = 'condition1'
             dom = ((lambda n: n >= 3,
                     lambda n: d1*n + e1,
                     'n >= 3',
@@ -357,20 +358,17 @@ def domain(field):
                    for d1 in [0, 1, 2]
                    for e1 in [0, 1, -1, 2, -2, 3, -3]
                    if (d1*3 + e1 >= 0))
-        elif field[0] < 3:
-            field = (field[0], 1)
+        elif field < 3:
             dom = iter(range(5))
-    # Case for f2
+    # Case for binary function
     elif len(field) == 2:
         if ((field[0] in [0, 1] and field[1] in [2, 3]) or
             (field[0] in [2, 3] and field[1] in [0, 1])):
-            field = (field, 2)
             dom = iter(range(6))
         elif (field[0] == 2 and field[1] == 2):
-            field = (field, 2)
             dom = iter(range(6))
         elif (field[0] == 0) and (field[1] >= 3):
-            field = ('condition1', 2)
+            field = 'condition1'
             dom = ((lambda m, n: (m  == 0) and (n >= 3), 
                     lambda m, n: b1*n + c1,
                     '(m == 0) and (n >= 3)',
@@ -379,7 +377,7 @@ def domain(field):
                    for c1 in [0, 1, -1, 2, -2, 3]
                    if (b1*2 + c1 >= 0))
         elif (field[0] == 1) and (field[1] >= 4):
-            field = ('condition2', 2)
+            field = 'condition2'
             dom = ((lambda m, n: (m  == 1) and (n >= 4), 
                     lambda m, n: b1*n + c1,
                     '(m == 1) and (n >= 4)',
@@ -388,7 +386,7 @@ def domain(field):
                    for c1 in [0, 1, -1, 2, -2, 3, 4, 5]#, -3]
                    if (b1*4 + c1 >= 0))
         elif (field[1] == 0) and (field[0] >= 3):
-            field = ('condition3', 2)
+            field = 'condition3'
             dom = ((lambda m, n: (n == 0) and (m >= 3), 
                     lambda m, n: a2*m + c2,
                     '(n == 0) and (m >= 3)',
@@ -397,7 +395,7 @@ def domain(field):
                    for c2 in [0, 1, -1, 2, -2, 3]
                    if (a2*2 + c2 >= 0))
         elif (field[1] == 1) and (field[0] >= 4):
-            field = ('condition4', 2)
+            field = 'condition4'
             dom = ((lambda m, n: (n == 1) and (m >= 4), 
                     lambda m, n: a2*m + c2,
                     '(n == 1) and (m >= 4)',
@@ -406,7 +404,7 @@ def domain(field):
                    for c2 in [0, 1, -1, 2, -2, 3, 4, 5]#, -3]
                    if (a2*2 + c2 >= 0))
         elif (field[1] >= 3) and (field[0] == field[1]):
-            field = ('condition5', 2)
+            field = 'condition5'
             dom = ((lambda m, n: (n >= 3) and (m == n), 
                     lambda m, n: a3*m + b3*n + c3,
                     '(n >= 3) and (m == n)',
@@ -416,7 +414,7 @@ def domain(field):
                    for c3 in [0, 1, -1, 2, -2, 3]
                    if (a3*3 + b3*3 + c3 >= 0))
         elif (field[1] >= 2) and (field[0] == (field[1]+1)):
-            field = ('condition6', 2)
+            field = 'condition6'
             dom = ((lambda m, n: (n >= 2) and (m == (n+1)), 
                     lambda m, n: a3*m + b3*n + c3,
                     '(n >= 2) and (m == (n+1))',
@@ -426,7 +424,7 @@ def domain(field):
                    for c3 in [0, 1, -1, 2, -2, 3]
                    if (a3*3 + b3*2 + c3 >= 0))
         elif (field[0] >= 2) and (field[0] == (field[1]-1)):
-            field = ('condition7', 2)
+            field = 'condition7'
             dom = ((lambda m, n: (m >= 2) and (m == (n-1)), 
                     lambda m, n: a3*m + b3*n + c3,
                     '(m >= 2) and (m == (n-1))',
@@ -436,7 +434,7 @@ def domain(field):
                    for c3 in [0, 1, -1, 2, -2, 3]
                    if (a3*2 + b3*3 + c3 >= 0))
         elif (field[1] >= 2) and (field[0] == (field[1]+2)):
-            field = ('condition8', 2)
+            field = 'condition8'
             dom = ((lambda m, n: (n >= 2) and (m == (n+2)), 
                     lambda m, n: a3*m + b3*n + c3,
                     '(n >= 2) and (m == (n+2))',
@@ -446,7 +444,7 @@ def domain(field):
                    for c3 in [0, 1, -1, 2, -2, 3]
                    if (a3*4 + b3*2 + c3 >= 0))
         elif (field[0] >= 2) and (field[0] == (field[1]-2)):
-            field = ('condition9', 2)
+            field = 'condition9'
             dom = ((lambda m, n: (m >= 2) and (m == (n-2)), 
                     lambda m, n: a3*m + b3*n + c3,
                     '(m >= 2) and (m == (n-2))',
@@ -459,7 +457,7 @@ def domain(field):
               (field[0] != field[1]) and (field[0] != field[1]-1) and
               (field[0] != field[1]+1) and (field[0] != field[1]-2) and
               (field[0] != field[1]+2)):
-            field = ('condition10', 2)
+            field = 'condition10'
             dom = ((lambda m, n: ((n >= 2) and (m >= 2) and
                                   (m != n) and (m != n-1) and
                                   (m != n+1) and (m != n+2) and
@@ -473,7 +471,6 @@ def domain(field):
                    for c3 in [0, 1, -1, 2, -2, 3, -3]
                    if (a3*2 + b3*2 + c3 >= 0))
         elif (field[1] < 2) and (field[0] < 2):
-            field = (field, 2)
             dom = iter(range(4))
     if not dom:
         raise ValueError('field = {}, dom is not defined.'.format(field))
@@ -491,16 +488,16 @@ def construct(id_ls, id_neg):
         """
         if not fields:
             raise StopIteration
-        next_field = fields[-1]
+        (next_field, f_name) = fields[-1]
+        if next_field == None:
+            yield (f2_dict, f1_dict)
         assign = assigns[-1]
         for b in assign:
-            if next_field == None:
-                yield (f2_dict, f1_dict)
-            elif next_field[1] == 1:
-                f1_new = dict(f1_dict.items() + {next_field[0]: b}.items())
+            if f_name == 'f1':
+                f1_new = dict(f1_dict.items() + {next_field: b}.items())
                 yield (f2_dict, f1_new)
-            elif next_field[1] == 2:
-                f2_new = dict(f2_dict.items() + {next_field[0]: b}.items())
+            elif f_name == 'f2':
+                f2_new = dict(f2_dict.items() + {next_field: b}.items())
                 yield (f2_new, f1_dict)
             
     def backtrack(f2_dict, f1_dict):
@@ -509,12 +506,12 @@ def construct(id_ls, id_neg):
         except StopIteration:
             if not fields:
                 raise StopIteration
-            field = fields.pop()
+            (field, f_name) = fields.pop()
             assign = assigns.pop()
-            if field[1] == 1:
-                del(f1_dict[field[0]])
-            elif field[1] == 2:
-                del(f2_dict[field[0]])
+            if f_name == 'f1':
+                del(f1_dict[field])
+            elif f_name == 'f2':
+                del(f2_dict[field])
             return backtrack(f2_dict, f1_dict)
         
     def complete(f2_dict, f1_dict):
@@ -530,8 +527,9 @@ def construct(id_ls, id_neg):
             for id_ in id_ls:
                 sat, needed = InfBunny(f2_dict, f1_dict).check_id(id_, limit, True)
                 if sat == None:
-                    (next_field, assign) = domain(needed[0])
-                    fields.append(next_field)
+                    vals, f_name = needed 
+                    (next_field, assign) = domain(vals)
+                    fields.append((next_field, f_name))
                     assigns.append(assign)
                     break
                 elif sat == False:
@@ -540,8 +538,9 @@ def construct(id_ls, id_neg):
                 if id_neg != None:
                     sat, needed = InfBunny(f2_dict, f1_dict).check_id(id_neg, limit, True)
                     if sat == None:
-                        (next_field, assign) = domain(needed[0])
-                        fields.append(next_field)
+                        vals, f_name = needed 
+                        (next_field, assign) = domain(vals)
+                        fields.append((next_field, f_name))
                         assigns.append(assign)
                     elif sat == False:
                         yield f2_dict, f1_dict
@@ -567,6 +566,6 @@ def inf_bunnies(id_pos_ls, id_neg):
         
 ######################IF MAIN ROUTINE##################################
 if __name__ == '__main__':
-    id1 = identity.Identity.make_identity('x', 'a*(-x)')
-    id2 = identity.Identity.make_identity('x', '-(a*x)')
-    print next(inf_bunnies([id1,], id2))
+    id1 = identity.Identity.make_identity('x = a*(-x)')
+    id2 = identity.Identity.make_identity('x = -(a*x)')
+    print InfBunny.find([id1,], id2, limit=10, t_limit=10)

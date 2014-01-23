@@ -1,4 +1,6 @@
 '''
+Holds classes to represent terms and identities in alphabet of 4 variables. 
+
 Created on Apr 27, 2013
 
 @author: artem
@@ -6,19 +8,14 @@ Created on Apr 27, 2013
 import copy
 import itertools
 from string import maketrans
+import re
 
 import term_parser
 import p9m4
 import fca
 
-# Two errors to throw when the result of substitution into term is less 0 or not int
-class NoneValueError(Exception):
-    def __init__(self, message):
-        self.message = message
-    def __str__(self):
-        return self.message
-    
-class NegativeError(Exception):
+######EXCEPTIONS###################################   
+class NotInUniverseError(Exception):
     def __init__(self, message):
         self.message = message
     def __str__(self):
@@ -68,7 +65,6 @@ class Identity(object):
         left_str, right_str = map(lambda x: x.strip(), id_str.split('='))
         left_term = Term.str2term(left_str)
         right_term = Term.str2term(right_str)
-        
         return cls(left_term, right_term)
     
     def __eq__(self, other):
@@ -80,7 +76,8 @@ class Identity(object):
     
 class Term(object):
     '''
-    Represents mathematical term
+    Represents mathematical term in the alphabet of 4 variables. Functional 
+    symbols should be specified in algebra.
     '''
     
     def __init__(self, func_str, name, var_count):
@@ -91,22 +88,28 @@ class Term(object):
         self.compiled_str = compile(func_str, '', 'eval') #term rewritten as applications of functions
         self.name = name
         self.var_count = var_count
+        self.func_symbols = _get_func_symbols(func_str)
         
     @memo
-    def __call__(self, bunny, values):
+    def __call__(self, algebra, values):
         '''
-        evaluate the term given bunny and values of variables.
-        
-        @return: value from bunny's domain or None if not defined
+        evaluate the term for given algebra and values of variables. Variables
+        are *x*, *y*, *z*, and *w*. Functions are picked up from algebra where
+        they must have the same names (e.g. for functional symbol 'f2_join'
+        there must be a function *algebra.f2_join*). 
+                
+        @return: value from algebra's universe (natural numbers) or None if
+        not defined
         '''
         (x, y, z, w) = values
-        (f2, f1, f0) = (bunny.f2, bunny.f1, bunny.f0)
+        for func_symbol in self.func_symbols:
+            exec(func_symbol + ' = algebra.' + func_symbol)
         result = eval(self.compiled_str)
         if isinstance(result, int) and (result < 0):
             info = 'result = {}, '.format(result)
             info += 'values = {}, '.format(values)
             info += 'func_str = {}'.format(self.func_str)
-            raise NegativeError(info)
+            raise NotInUniverseError(info)
         return result
          
     def __repr__(self):
@@ -126,7 +129,10 @@ class Term(object):
     @classmethod
     def parsed2term(cls, parsed):
         '''
-        make term from parsed output from bunny_exploration.term_parser
+        make term from parsed output from bunny_exploration.term_parser.
+        
+        @attention: works only for signature of binary *f2*, unary *f1*,
+        and nullary *f0* functions.
         '''
         def apply_op(var_list, op_order, op_types):
             '''
@@ -163,7 +169,15 @@ class Term(object):
         
         func_str = apply_op(var_list, op_order, op_types)
         return cls(func_str, name, var_count)
-    
+
+def _get_func_symbols(func_str):
+    """
+    Extract functional symbols from functional string. Functional symbols should
+    look like 'f{}{}'.format(n, name), where *n* is the arity, name is the name.
+    If arity is more than 0, then '(' follows the name, nullary function ends 
+    with name. 
+    """
+    return [x.group() for x in re.finditer(r"(?<!\w)f[0-9]\w*", func_str)]
     
 def generate_ts(len_limit, num_vars=1):
     '''
