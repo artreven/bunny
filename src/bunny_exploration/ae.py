@@ -58,7 +58,7 @@ class AE(object):
         Find implication basis and save it in self.basis in unit form
         """
         ts = time.time()
-        basis = self.cxt.attribute_implications
+        basis = self.cxt.get_aibasis()
         te = time.time()
         m = '\nIt took {0} seconds to compute the canonical basis.\n'.format(te-ts)
         print m
