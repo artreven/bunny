@@ -67,6 +67,23 @@ class Identity(object):
         right_term = Term.str2term(right_str)
         return cls(left_term, right_term)
     
+    @classmethod
+    def func_str2id(cls, func_str):
+        '''
+        make identity from func_string
+        '''
+        left_str, right_str = map(lambda x: x.strip(), func_str.split('='))
+        # counting number of vars
+        num_vars_left = num_vars_right = 1
+        for i, j in enumerate(['y', 'z', 'w'], 2):
+            if re.search(r'(?<!\w){0}(?!\w)'.format(j), left_str):
+                num_vars_left = i
+            if re.search(r'(?<!\w){0}(?!\w)'.format(j), right_str):
+                num_vars_right = i
+        left_term = Term(left_str, left_str, num_vars_left)
+        right_term = Term(right_str, right_str, num_vars_right)
+        return cls(left_term, right_term)
+    
     def __eq__(self, other):
         return self.__repr__() == other.__repr__()
         

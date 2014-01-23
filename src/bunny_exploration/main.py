@@ -3,14 +3,15 @@ Created on May 13, 2013
 
 @author: artem
 '''
-import time
-import cProfile
-import os
+#import time
+#import cProfile
+#import os
 
 import fca
 
 import bunny_exploration as be
 
+######################Identities manually###########################
 ####SIZE = 2
 id1 = be.Identity.make_identity('x=x')
 id2 = be.Identity.make_identity('x=y')
@@ -108,18 +109,30 @@ id84 = be.Identity.make_identity('x*y=y*x')
 id85 = be.Identity.make_identity('x*(-x)=(-x)*x')
 id86 = be.Identity.make_identity('x*(y*z)=(x*y)*z')
 
-id_ls = [id1, id2, id3, id4, id5, id6, id7, id8, id9, id10,
-         id11, id12, id13, id14, id15, id16, id17, id18, id19, id20,
-         id21, id22, id23, id24, id25, id26, id27, id28, id29, id30,
-         id31, id32, id33, id34, id35, id36, id37, id38, id39, id40,
-         id41, id42, id43, id44, id45, id46, id47, id48, id49, id50,
-         id51, id52, id53, id54, id55, id56, id57, id58, id59, id60,
-         id61, id62, id63, id64, id65, id66, id67, id68, id69, id70,
-         id71, id72, id73, id74, id75, id76, id77, id78, id79, id80,
-         id81, id82, id83, id84, id85, id86]
+id_ls_manually = [id1, id2, id3, id4, id5, id6, id7, id8, id9, id10,
+                  id11, id12, id13, id14, id15, id16, id17, id18, id19, id20,
+                  id21, id22, id23, id24, id25, id26, id27, id28, id29, id30,
+                  id31, id32, id33, id34, id35, id36, id37, id38, id39, id40,
+                  id41, id42, id43, id44, id45, id46, id47, id48, id49, id50,
+                  id51, id52, id53, id54, id55, id56, id57, id58, id59, id60,
+                  id61, id62, id63, id64, id65, id66, id67, id68, id69, id70,
+                  id71, id72, id73, id74, id75, id76, id77, id78, id79, id80,
+                  id81, id82, id83, id84, id85, id86]
 
-###############################################################################
-def init_cxt(size):
+#####################Identities from file##########################
+def read_ids(path):
+    """
+    Reads identities from given path. One identity per line.
+    """
+    id_ls = []
+    with open(path, 'r') as f_ids:
+        for line_id in f_ids:
+            new_id = be.Identity.func_str2id(line_id)
+            id_ls.append(new_id)
+    return id_ls
+
+#####################Some necessary definitions to start########################
+def init_cxt(size, id_ls):
     obj_ls = []
     att_ls = id_ls
     table = []
@@ -169,11 +182,13 @@ def ce_finder(basis, dest, wait):
     print m
     return ce_dict
 
+#####################################MAIN######################################
 if __name__ == '__main__':
-    import getpass
+    #import getpass
     
-    cxt = init_cxt(2)
-    dest = os.path.expanduser('~') + '/Dropbox/personal/Scripts/AptanaWorkspace/MIW/bunny_exploration/70ids_leq5/3'
+    dest = './ids_size_leq7'
     prover = be.prover9
+    id_ls = read_ids('./ids6.txt')
+    cxt = init_cxt(2, id_ls)
     ae = be.AE(cxt, dest, prover, ce_finder)
-    ae.run((5, 1, 1), 2)
+    ae.run((0, 2, 2), 2)
