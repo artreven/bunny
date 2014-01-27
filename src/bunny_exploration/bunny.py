@@ -18,7 +18,7 @@ class ArgError(Exception):
     def __init__(self, vals, f_name):
         self.vals = vals
         self.f_name = f_name
-        self.message = 'For input {0} function {0} is not defined'.format(vals,
+        self.message = 'For input {0} function {1} is not defined'.format(vals,
                                                                         f_name)
     def __str__(self):
         return self.message
@@ -214,7 +214,7 @@ class InfBunny(Bunny):
                             print 'Infinite bunny found', bunny, '\n'
                             return bunny
         except TimeoutException, msg:
-            print 'Time limit = {} sec reached, no infinite bunny found\n'.format(t_limit)
+            print 'Time limit = {0} sec reached, no infinite bunny found\n'.format(t_limit)
             return None
         print 'No infinite bunny found'
         return None
