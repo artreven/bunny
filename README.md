@@ -9,6 +9,7 @@ Here the data domain is the algebraic indentities.
 Project holds the code for the attribute explorations of
 algebras of type (2, 1, 0) - Binary, Unary, Nulary operations, that's why they are
 called BUNnies. The data consists of three parts:
+
 1. Bunnies;
 2. Identities (of size 5 initially);
 3. Relation between bunnies and identities: a bunny is in relation with an identity if the identity holds in the bunny. 
