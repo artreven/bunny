@@ -37,6 +37,4 @@ nosetests.xml
 
 .project
 .pydevproject
-error_check/data_sets
-error_check/data_sets
-src/bunny_exploration/70ids*
+src/

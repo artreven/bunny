@@ -3,18 +3,20 @@ Holds classes to represent terms and identities in alphabet of 4 variables.
 
 Created on Apr 27, 2013
 
-@author: artem
+@author: Artem
 '''
 import copy
 import itertools
 from string import maketrans
 import re
 
-import term_parser
-import p9m4
 import fca
 
-######EXCEPTIONS###################################   
+import term_parser
+import p9m4
+
+
+######EXCEPTIONS###################################
 class NotInUniverseError(Exception):
     def __init__(self, message):
         self.message = message
@@ -51,9 +53,9 @@ class Identity(object):
         '''
         self.left_term = left_term
         self.right_term = right_term
-        self.var_count = max([left_term.var_count, right_term.var_count])
+        self.vars = set(left_term.vars) | set(right_term.vars)
         
-    def __repr__(self):
+    def __str__(self):
         return (str(self.left_term.name).strip() + ' = ' +
                 str(self.right_term.name).strip())
     
@@ -74,21 +76,22 @@ class Identity(object):
         '''
         left_str, right_str = map(lambda x: x.strip(), func_str.split('='))
         # counting number of vars
-        num_vars_left = num_vars_right = 1
-        for i, j in enumerate(['y', 'z', 'w'], 2):
+        vars_left = []
+        vars_right = []
+        for j in ['y', 'z', 'w']:
             if re.search(r'(?<!\w){0}(?!\w)'.format(j), left_str):
-                num_vars_left = i
+                vars_left.append(j)
             if re.search(r'(?<!\w){0}(?!\w)'.format(j), right_str):
-                num_vars_right = i
-        left_term = Term(left_str, left_str, num_vars_left)
-        right_term = Term(right_str, right_str, num_vars_right)
+                vars_right.append(j)
+        left_term = Term(left_str, left_str, vars_left)
+        right_term = Term(right_str, right_str, vars_right)
         return cls(left_term, right_term)
     
     def __eq__(self, other):
-        return self.__repr__() == other.__repr__()
+        return self.__str__() == other.__str__()
         
     def __hash__(self):
-        return self.__repr__().__hash__()
+        return self.__str__().__hash__()
     
     
 class Term(object):
@@ -97,18 +100,18 @@ class Term(object):
     symbols should be specified in algebra.
     '''
     
-    def __init__(self, func_str, name, var_count):
+    def __init__(self, func_str, name, vars):
         '''
         Constructor
         '''
         self.func_str = func_str
         self.compiled_str = compile(func_str, '', 'eval') #term rewritten as applications of functions
         self.name = name
-        self.var_count = var_count
+        self.vars = vars
         self.func_symbols = _get_func_symbols(func_str)
         
     @memo
-    def __call__(self, algebra, values):
+    def __call__(self, algebra, dict_values):
         '''
         evaluate the term for given algebra and values of variables. Variables
         are *x*, *y*, *z*, and *w*. Functions are picked up from algebra where
@@ -118,7 +121,8 @@ class Term(object):
         @return: value from algebra's universe (natural numbers) or None if
         not defined
         '''
-        (x, y, z, w) = values
+        for i, j in dict_values.items():
+            exec('{0} = {1}'.format(i, j))
         for func_symbol in self.func_symbols:
             exec(func_symbol + ' = algebra.' + func_symbol)
         result = eval(self.compiled_str)
@@ -129,7 +133,7 @@ class Term(object):
             raise NotInUniverseError(info)
         return result
          
-    def __repr__(self):
+    def __str__(self):
         return self.name
     
     def __eq__(self, other):
@@ -183,16 +187,17 @@ class Term(object):
         # change numbers in elements into variable names
         var_dict = {0: 'x', 1: 'y', 2: 'z', 3: 'w'}
         var_list = [var_dict[elem] for elem in elems]
+        vars = set(var_list)
         
         func_str = apply_op(var_list, op_order, op_types)
-        return cls(func_str, name, var_count)
+        return cls(func_str, name, vars)
 
 def _get_func_symbols(func_str):
     """
     Extract functional symbols from functional string. Functional symbols should
-    look like 'f{}{}'.format(n, name), where *n* is the arity, name is the name.
-    If arity is more than 0, then '(' follows the name, nullary function ends 
-    with name. 
+    look like 'f{}_{}'.format(n, name), where *n* is the arity, name is the name,
+    name is optional. If arity is more than 0, then '(' follows the name,
+    nullary function ends with name. 
     """
     return [x.group() for x in re.finditer(r"(?<!\w)f[0-9]\w*", func_str)]
     
@@ -323,5 +328,5 @@ if __name__ == '__main__':
         print '\n'.join(map(str, g))
         print '\ntotal: ', len(g)
         return g
-    for i in range(5):
+    for i in range(7):
         print_ids(i, 3)

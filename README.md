@@ -1,16 +1,18 @@
-MIW
+Bunny
 ===
-Here the code I use for my PhD project Mathematical Inferential Wikipedia is stored.
+Here you can find the code I used for the exploration of implicative theory of algebraic identities.
+The implicative theory is the set of all implications that hold in a given data domain.
+Here the data domain is the algebraic indentities.
 
-![alt tag](https://raw.github.com/artreven/MIW/master/bunny_hello.png)
+![alt tag](https://raw.githubusercontent.com/artreven/bunny/master/bunny_hello.png)
 
-bunny_exploration
--------------------
-===
-Holds the code for the attribute explorations of
+Project holds the code for the attribute explorations of
 algebras of type (2, 1, 0) - Binary, Unary, Nulary operations, that's why they are
-called BUNnies. The formal context consists of bunnies as objects and identities
-as attributes.
+called BUNnies. The data consists of three parts:
+1. Bunnies;
+2. Identities (of size 5 initially);
+3. Relation between bunnies and identities: a bunny is in relation with an identity if the identity holds in the bunny. 
+
 Example of a bunny:
 <table>
   <td>
@@ -60,12 +62,6 @@ define the order.
 
 The language for building identities is described in more details in the corresponding
 module term_parser.py which holds the parser.
-
-error_check
--------------
-===
-Holds the code for finding errors in formal objects. The
-closely related debugger is inside this package. More info inside.
 
 
 ===

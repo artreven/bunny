@@ -1,4 +1,4 @@
-from bunny_exploration.term_parser import parse_str, flatten, term_parse, make_input
+from bunny.term_parser import parse_str, flatten, term_parse, make_input
 
 class TestParser:
     @classmethod

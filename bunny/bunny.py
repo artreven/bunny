@@ -1,7 +1,10 @@
 '''
+Holds a class for representing (2,1,0) algebras (BUNnies) and functions for
+finding bunnies satisfying given conditions.
+
 Created on Apr 28, 2013
 
-@author: artem
+@author: Artem
 '''
 #import time
 import itertools
@@ -55,8 +58,8 @@ class Bunny(object):
         self.f2_dict = f2_dict
         self.f1_dict = f1_dict
         self.f0_dict = f0_dict
-        self.f2 = generate_f(f2_dict, 'f2')
-        self.f1 = generate_f(f1_dict, 'f1')
+        self.f2 = _generate_f(f2_dict, 'f2')
+        self.f1 = _generate_f(f1_dict, 'f1')
         self.f0 = f0_dict
         if size == None:
             self.size = len(self.f1_dict)
@@ -70,7 +73,7 @@ class Bunny(object):
         else:
             self.index = index
         
-    def __repr__(self):
+    def __str__(self):
         if self.size.__class__.__name__ != 'int':
             raise Exception('Size not int')
         size = self.size
@@ -91,8 +94,8 @@ class Bunny(object):
                 (self.f1_dict == other.f1_dict) and
                 (self.f0_dict == other.f0_dict))
         
-    def has_attribute(self, id_):
-        return self.check_id(id_)
+    #def has_attribute(self, id_):
+    #    return self.check_id(id_)
         
     def check_id(self, id_, limit=None, partial=False):
         '''
@@ -102,54 +105,40 @@ class Bunny(object):
         @param partial: if partially defined f2 and f1 are accepted. In this
         case None is a valid result.
         @return: 1) *partial* == False => returns *result*
-                 2) *partial* == True  => returns two values: (*result*, *values*);
+                 2) *partial* == True  => returns two values: (*result*,
+                                          *values*, *func_name*);
                                           *values* - input for which functions
-                                          should be defined next.
+                                          *func_name* should be defined next.
         '''
         if isinstance(self.size, int):
             limit = self.size
-        assert limit != None
+        assert limit != None and limit != float('inf')
         
-        #needed = []
-        # substitutions. After every loop checks number of variables
-        for w in xrange(limit):
-            for z in xrange(limit):
-                for y in xrange(limit):
-                    for x in xrange(limit):
-                        values = [x, y, z, w]
-                        try:
-                            left_val = id_.left_term(self, values)
-                        except ArgError as e:
-                            if not partial:
-                                info = 'id: {0}, '.format(id_)
-                                info += 'values = {0}, '.format(values)
-                                info += 'left.func_str = {0}, '.format(id_.left_term.func_str)
-                                info += 'Bunny: {0}'.format(self.__repr__())
-                                raise Exception, info
-                            needed = (e.vals, e.f_name)
-                            return (None, needed)
-                        else:
-                            try:
-                                right_val = id_.right_term(self, values)
-                            except ArgError as e:
-                                if not partial:
-                                    info = 'id: {0}, '.format(id_)
-                                    info += 'values = {0}, '.format(values)
-                                    info += 'right.func_str = {0}\n'.format(id_.right_term.func_str)
-                                    info += 'Bunny: {0}'.format(self.__repr__())
-                                    raise Exception, info
-                                needed = (e.vals, e.f_name)
-                                return (None, needed)
-                            else:
-                                # Nothing to do if left_val == right_val
-                                if left_val != right_val:
-                                    return False if (not partial) else (False, values)
-                    if id_.var_count == 1:
-                        break
-                if id_.var_count <= 2:
-                    break
-            if id_.var_count <= 3:
-                break
+        current_vars = id_.vars
+        evaluations = itertools.product(xrange(limit), repeat=len(current_vars))
+        for evaluation in evaluations:
+            dict_values = dict(zip(current_vars, evaluation))
+            try:
+                left_val = id_.left_term(self, dict_values)
+            except ArgError as e:
+                if not partial:
+                    raise ArgError(e.vals, id_.left_term.func_str)
+                else:
+                    needed = (e.vals, e.f_name)
+                    return (None, needed)
+            else:
+                try:
+                    right_val = id_.right_term(self, dict_values)
+                except ArgError as e:
+                    if not partial:
+                        raise ArgError(e.vals, id_.right_term.func_str)
+                    else:
+                        needed = (e.vals, e.f_name)
+                        return (None, needed)
+                else:
+                    # Nothing to do if left_val == right_val
+                    if left_val != right_val:
+                        return False if (not partial) else (False, dict_values)
         return True if not partial else (True, [])
 
         
@@ -164,7 +153,7 @@ class InfBunny(Bunny):
         '''
         super(InfBunny, self).__init__(f2_dict, f1_dict, 0, 'N/A', 'Inf')
     
-    def __repr__(self):
+    def __str__(self):
         s = '\n\tINFINITE BUNNY\n'
         if hasattr(self.f2_dict, '__call__') or hasattr(self.f1_dict, '__call__'):
             return s
@@ -219,7 +208,7 @@ class InfBunny(Bunny):
         print 'No infinite bunny found'
         return None
     
-def generate_f(dict_values, f_name):
+def _generate_f(dict_values, f_name):
     '''
     Make function from dict_values. 
     '''
