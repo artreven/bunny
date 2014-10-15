@@ -61,7 +61,7 @@ Example of identity:
 * -x = a*(-x), where x - variable, a = f0: nulary operation or constant, -x = f1(x): unary operation, x*y = f2(x,y): binary operation, brackets define the order.
 
 The language for building identities is described in more details in the corresponding
-module term_parser.py which holds the parser.
+module term_parser.py, which holds the parser.
 
 
 ===

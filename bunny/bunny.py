@@ -6,12 +6,11 @@ Created on Apr 28, 2013
 
 @author: Artem
 '''
-#import time
+import re
+import time
 import itertools
-import signal
-from contextlib import contextmanager
-
-import identity
+from collections import OrderedDict
+from copy import deepcopy
 
 ####################################EXCEPTIONS#################################
 class ArgError(Exception):
@@ -26,7 +25,11 @@ class ArgError(Exception):
     def __str__(self):
         return self.message
     
-class TimeoutException(Exception): pass
+class TimeoutError(Exception): pass
+
+class UndefError(Exception): pass
+
+class InconsistentBindingError(Exception): pass
     
 #######################DECORATORS############################################
 def memo(f):
@@ -45,204 +48,93 @@ def memo(f):
     _f.__name__ = f.__name__
     return _f
 
+#Constant definition
+#Because of 0*float('inf') := 'nan', I define infinity to be 1000.
+INF = 1000
+
 ###############################################################################
 class Bunny(object):
     '''
     General Bunny class, superclass for InfBunny
     '''
     
-    def __init__(self, f2_dict, f1_dict, f0_dict, index=None, size=None):
+    def __init__(self, f2, f1, f0=0, index=None, size=None):
         '''
         Constructor
         '''
-        self.f2_dict = f2_dict
-        self.f1_dict = f1_dict
-        self.f0_dict = f0_dict
-        self.f2 = _generate_f(f2_dict, 'f2')
-        self.f1 = _generate_f(f1_dict, 'f1')
-        self.f0 = f0_dict
+        self.funcs = dict()
+        self.funcs['f2'] = f2
+        self.funcs['f1'] = f1
+        self.funcs['f0'] = f0
         if size == None:
-            self.size = len(self.f1_dict)
+            self.size = len(self.funcs['f1'].dict)
         else:
             self.size = size
         if index == None:
             if isinstance(self.size, int):
-                self.index = _index(f2_dict, f1_dict, f0_dict, size)
+                self.index = _index(self.funcs['f2'].dict,
+                                    self.funcs['f1'].dict, self.f0,
+                                    self.size)
             else:
                 self.index = 'N/A'
         else:
             self.index = index
         
     def __str__(self):
-        if self.size.__class__.__name__ != 'int':
+        if not isinstance(self.size, 'int'):
             raise Exception('Size not int')
         size = self.size
         s = '\tBUNNY No {0}'.format(self.index) + '\n'
         s += ('f2\t' + '\t'.join(map(str, range(size))) +
              '\t\tf1' + '\t\t\tf0' + '\n')
         for i in range(size):
-            f2_vals = (self.f2_dict[i, j] for j in range(size))
+            f2_vals = (self.funcs['f2'].dict[i, j] for j in range(size))
             s += (str(i) + '\t' + '\t'.join(map(str, f2_vals)) +
-                  '\t\t' + str(i) + '\t' + str(self.f1_dict[i]))
+                  '\t\t' + str(i) + '\t' + str(self.funcs['f1'].dict[i]))
             if i == 0:
-                s += '\t\t\t' + str(self.f0_dict)
+                s += '\t\t\t' + str(self.funcs['f0'])
             s += '\n'
         return s
     
     def __eq__(self, other):
-        return ((self.f2_dict == other.f2_dict) and
-                (self.f1_dict == other.f1_dict) and
-                (self.f0_dict == other.f0_dict))
-        
-    #def has_attribute(self, id_):
-    #    return self.check_id(id_)
-        
-    def check_id(self, id_, limit=None, partial=False):
+        return ((self.size == other.size) and
+                (self.funcs['f2'].dict == other.funcs['f2'].dict) and
+                (self.funcs['f1'].dict == other.funcs['f1'].dict) and
+                (self.funcs['f0'] == other.funcs['f0']))
+    
+    @classmethod
+    def dicts2bunny(cls, f2_dict, f1_dict, f0, index=None, size=None):
+        f2 = _dict2f(f2_dict, 'f2')
+        f1 = _dict2f(f1_dict, 'f1')
+        return cls(f2, f1, f0, index, size)
+
+    def check_id(self, id_, limit=None, v=False):
         '''
         check if bunny satisfies id
         
         @param limit: checks up to this limit
-        @param partial: if partially defined f2 and f1 are accepted. In this
-        case None is a valid result.
-        @return: 1) *partial* == False => returns *result*
-                 2) *partial* == True  => returns two values: (*result*,
-                                          *values*, *func_name*);
-                                          *values* - input for which functions
-                                          *func_name* should be defined next.
         '''
         if isinstance(self.size, int):
             limit = self.size
         assert limit != None and limit != float('inf')
         
-        current_vars = id_.vars
-        evaluations = itertools.product(xrange(limit), repeat=len(current_vars))
+        current_vars = id_.var_symbols
+        evaluations = itertools.product(xrange(limit-1, -1, -1),
+                                        repeat=len(current_vars))
         for evaluation in evaluations:
-            dict_values = dict(zip(current_vars, evaluation))
-            try:
-                left_val = id_.left_term(self, dict_values)
-            except ArgError as e:
-                if not partial:
-                    raise ArgError(e.vals, id_.left_term.func_str)
+            dict_subs = dict(zip(current_vars, evaluation))
+            lhs = id_.left_term(self, dict_subs)
+            rhs = id_.right_term(self, dict_subs) 
+            if not lhs == rhs:
+                if v:
+                    return False, dict_subs, lhs, rhs
                 else:
-                    needed = (e.vals, e.f_name)
-                    return (None, needed)
-            else:
-                try:
-                    right_val = id_.right_term(self, dict_values)
-                except ArgError as e:
-                    if not partial:
-                        raise ArgError(e.vals, id_.right_term.func_str)
-                    else:
-                        needed = (e.vals, e.f_name)
-                        return (None, needed)
-                else:
-                    # Nothing to do if left_val == right_val
-                    if left_val != right_val:
-                        return False if (not partial) else (False, dict_values)
-        return True if not partial else (True, [])
-
+                    return False
+        return True
         
-class InfBunny(Bunny):
-    '''
-    Class for infinite bunnies
-    '''
-    
-    def __init__(self, f2_dict, f1_dict):
-        '''
-        Constructor
-        '''
-        super(InfBunny, self).__init__(f2_dict, f1_dict, 0, 'N/A', 'Inf')
-    
-    def __str__(self):
-        s = '\n\tINFINITE BUNNY\n'
-        if hasattr(self.f2_dict, '__call__') or hasattr(self.f1_dict, '__call__'):
-            return s
-        s += 'f2(m, n):\n'
-        # f2
-        for k in sorted(self.f2_dict.keys()):
-            s += '\t'
-            try:
-                s += str(self.f2_dict[k][2]) + ':\t' + str(self.f2_dict[k][3]) + '\n'
-            except TypeError:
-                s += str(k) + ':\t' + str(self.f2_dict[k]) + '\n'
-        # f1
-        s += 'f1(n):\n'
-        for k in sorted(self.f1_dict.keys()):
-            s += '\t'
-            try:
-                s += str(self.f1_dict[k][2]) + ':\t' + str(self.f1_dict[k][3]) + '\n'
-            except TypeError:
-                s += str(k) + ':\t' + str(self.f1_dict[k]) + '\n'
-            except IndexError:
-                s += str(k) + '\n'
-        # f0
-        s += 'f0:\n\t' + str(0) + '\n'
-        return s
-    
-    def has_attribute(self, id_):
-        return self.check_id(id_, 10)      
-
-    @classmethod
-    def find(cls, id_pos_ls, id_neg, limit, t_limit, previous=None):
-        '''
-        find infinite bunny which satisfies all id_pos_ls and does not satisfy
-        id_neg
-        '''
-        print 'Starting on positive identities: ', id_pos_ls,
-        print ',\tnegative identity: ', id_neg
-        if (previous and
-            (all([previous.check_id(id_, limit) for id_ in id_pos_ls]) and
-            ((id_neg == None) or not previous.check_id(id_neg, limit)))):
-                print 'Infinite bunny found - previous', previous, '\n'
-                return previous
-        try:
-            with time_limit(t_limit):
-                for bunny in inf_bunnies(id_pos_ls, id_neg):
-                    if (all([bunny.check_id(id_, limit) for id_ in id_pos_ls]) and
-                        ((id_neg == None) or not bunny.check_id(id_neg, limit))):
-                            print 'Infinite bunny found', bunny, '\n'
-                            return bunny
-        except TimeoutException, msg:
-            print 'Time limit = {0} sec reached, no infinite bunny found\n'.format(t_limit)
-            return None
-        print 'No infinite bunny found'
-        return None
-    
-def _generate_f(dict_values, f_name):
-    '''
-    Make function from dict_values. 
-    '''
-    @memo
-    def f(*args):
-        try:
-            return dict_values[args[0]] if (len(args) == 1) else dict_values[args]
-        except KeyError:
-            conds = [(cond_case[0], cond_case[1])
-                     for (name, cond_case) in sorted(dict_values.items())
-                     if (isinstance(name, str) and name.startswith('condition'))]
-            for (cond, case) in conds:
-                if cond(*args):
-                    return case(*args)
-            else:
-                raise ArgError(args, f.__name__)
-    f.__name__ = f_name
-    return dict_values if hasattr(dict_values, '__call__') else f
-
-@contextmanager
-def time_limit(seconds):
-    def signal_handler(signum, frame):
-        raise TimeoutException, "Timed out!"
-    signal.signal(signal.SIGALRM, signal_handler)
-    signal.alarm(seconds)
-    try:
-        yield
-    finally:
-        signal.alarm(0)
-
-###############################GENERATION OF FINITE BUNNIES##############
 def bunnies(size):
     '''
-    Create all finite bunnies on the domain of given size.
+    Create iterator over all finite bunnies on the domain of given size.
     '''
     all_f = ((dict([[(i, j), (v2 / (size ** (size*i + j)) % size)]
                      for i in range(size)
@@ -259,8 +151,10 @@ def bunnies(size):
              for v1 in xrange(size ** size)
              for v0 in xrange(1))
     
-    for f2_dict, f1_dict, f0_dict, index in all_f:
-        yield Bunny(f2_dict, f1_dict, f0_dict, index)
+    for f2_dict, f1_dict, f0, index in all_f:
+        f2 = _dict2f(f2_dict, 'f2')
+        f1 = _dict2f(f1_dict, 'f1')
+        yield Bunny(f2, f1, f0, index)
         
 def show(index, size):
     '''
@@ -272,10 +166,12 @@ def show(index, size):
     f2_dict = dict([[(i, j), (v2 / (size ** (size*i + j)) % size)]
                      for i in range(size)
                      for j in range(size)])
+    f2 = _dict2f(f2_dict, 'f2')
     f1_dict = dict([[i, (v1 / size**i % size)]
                      for i in range(size)])
+    f1 = _dict2f(f1_dict, 'f1')
     f0 = v0
-    return Bunny(f2_dict, f1_dict, f0, index)
+    return Bunny(f2, f1, f0, index)
 
 def _index(f2_dict, f1_dict, f0_dict, size):
     """
@@ -294,267 +190,570 @@ def _index(f2_dict, f1_dict, f0_dict, size):
     v0 = f0_dict
             
     return (v2 + v1*(size ** (size**2)) + v0*(size ** (size**2 + size)))
-                
-#############################GENERATION OF INFINITE BUNNIES 2###############
-def finish(f2_dict, f1_dict):
-    """
-    Finalize partially defined f2 and f1 to total functions.  
-    """
-    def add_val(fs, field, dom):
-        return (dict(f_d.items() + {field: i}.items())
-                for f_d in fs
-                for i in dom)
         
-    normal_vals2 = [(0, 0), (0, 1), (1, 0), (1, 1),
-                    (2, 2),
-                    (0, 2), (2, 0),
-                    (1, 2), (2, 1),
-                    (0, 3), (3, 0),
-                    (1, 3), (3, 1),
-                    (1, 4), (0, 4), 
-                    (4, 1), (4, 0),
-                    (4, 4), (4, 9),
-                    (3, 4), (4, 3),
-                    (3, 5), (5, 3)]
-    normal_vals1 = [0, 1, 2, 3, 4]
-    f2s = [f2_dict,]
-    f1s = [f1_dict,]
-    for val in normal_vals2:
-        (field, dom) = domain(val)
-        if not (field in f2_dict.keys()):
-            f2s = add_val(f2s, field, dom)
-    for val in normal_vals1:
-        (field, dom) = domain(val)
-        if not (field in f1_dict.keys()):
-            f1s = add_val(f1s, field, dom)
-    return itertools.product(f2s, f1s)
-
-def domain(field):
-    """
-    @return: next field and possible values for this field
-    """
-    dom = None
-    if hasattr(field, '__len__') and len(field) == 1:
-        field = field[0]
-    # Case for unary function
-    if isinstance(field, int):
-        if field >= 3:
-            field = 'condition1'
-            dom = ((lambda n: n >= 3,
-                    lambda n: d1*n + e1,
-                    'n >= 3',
-                    '{0}*n + {1}'.format(d1, e1))
-                   for d1 in [0, 1, 2]
-                   for e1 in [0, 1, -1, 2, -2, 3, -3]
-                   if (d1*3 + e1 >= 0))
-        elif field < 3:
-            dom = iter(range(5))
-    # Case for binary function
-    elif len(field) == 2:
-        if ((field[0] in [0, 1] and field[1] in [2, 3]) or
-            (field[0] in [2, 3] and field[1] in [0, 1])):
-            dom = iter(range(6))
-        elif (field[0] == 2 and field[1] == 2):
-            dom = iter(range(6))
-        elif (field[0] == 0) and (field[1] >= 3):
-            field = 'condition1'
-            dom = ((lambda m, n: (m  == 0) and (n >= 3), 
-                    lambda m, n: b1*n + c1,
-                    '(m == 0) and (n >= 3)',
-                    '{0}*n + {1}'.format(b1, c1))
-                   for b1 in [0, 1]
-                   for c1 in [0, 1, -1, 2, -2, 3]
-                   if (b1*2 + c1 >= 0))
-        elif (field[0] == 1) and (field[1] >= 4):
-            field = 'condition2'
-            dom = ((lambda m, n: (m  == 1) and (n >= 4), 
-                    lambda m, n: b1*n + c1,
-                    '(m == 1) and (n >= 4)',
-                    '{0}*n + {1}'.format(b1, c1))
-                   for b1 in [0, 1]
-                   for c1 in [0, 1, -1, 2, -2, 3, 4, 5]#, -3]
-                   if (b1*4 + c1 >= 0))
-        elif (field[1] == 0) and (field[0] >= 3):
-            field = 'condition3'
-            dom = ((lambda m, n: (n == 0) and (m >= 3), 
-                    lambda m, n: a2*m + c2,
-                    '(n == 0) and (m >= 3)',
-                    '{0}*m + {1}'.format(a2, c2))      
-                   for a2 in [0, 1]
-                   for c2 in [0, 1, -1, 2, -2, 3]
-                   if (a2*2 + c2 >= 0))
-        elif (field[1] == 1) and (field[0] >= 4):
-            field = 'condition4'
-            dom = ((lambda m, n: (n == 1) and (m >= 4), 
-                    lambda m, n: a2*m + c2,
-                    '(n == 1) and (m >= 4)',
-                    '{0}*m + {1}'.format(a2, c2))      
-                   for a2 in [0, 1]
-                   for c2 in [0, 1, -1, 2, -2, 3, 4, 5]#, -3]
-                   if (a2*2 + c2 >= 0))
-        elif (field[1] >= 3) and (field[0] == field[1]):
-            field = 'condition5'
-            dom = ((lambda m, n: (n >= 3) and (m == n), 
-                    lambda m, n: a3*m + b3*n + c3,
-                    '(n >= 3) and (m == n)',
-                    '{0}*m + {1}*n + {2}'.format(a3, b3, c3))     
-                   for a3 in [0, 1]
-                   for b3 in [0, 1]
-                   for c3 in [0, 1, -1, 2, -2, 3]
-                   if (a3*3 + b3*3 + c3 >= 0))
-        elif (field[1] >= 2) and (field[0] == (field[1]+1)):
-            field = 'condition6'
-            dom = ((lambda m, n: (n >= 2) and (m == (n+1)), 
-                    lambda m, n: a3*m + b3*n + c3,
-                    '(n >= 2) and (m == (n+1))',
-                    '{0}*m + {1}*n + {2}'.format(a3, b3, c3))     
-                   for a3 in [0, 1]
-                   for b3 in [0, 1]
-                   for c3 in [0, 1, -1, 2, -2, 3]
-                   if (a3*3 + b3*2 + c3 >= 0))
-        elif (field[0] >= 2) and (field[0] == (field[1]-1)):
-            field = 'condition7'
-            dom = ((lambda m, n: (m >= 2) and (m == (n-1)), 
-                    lambda m, n: a3*m + b3*n + c3,
-                    '(m >= 2) and (m == (n-1))',
-                    '{0}*m + {1}*n + {2}'.format(a3, b3, c3))     
-                   for a3 in [0, 1]
-                   for b3 in [0, 1]
-                   for c3 in [0, 1, -1, 2, -2, 3]
-                   if (a3*2 + b3*3 + c3 >= 0))
-        elif (field[1] >= 2) and (field[0] == (field[1]+2)):
-            field = 'condition8'
-            dom = ((lambda m, n: (n >= 2) and (m == (n+2)), 
-                    lambda m, n: a3*m + b3*n + c3,
-                    '(n >= 2) and (m == (n+2))',
-                    '{0}*m + {1}*n + {2}'.format(a3, b3, c3))     
-                   for a3 in [0, 1]
-                   for b3 in [0, 1]
-                   for c3 in [0, 1, -1, 2, -2, 3]
-                   if (a3*4 + b3*2 + c3 >= 0))
-        elif (field[0] >= 2) and (field[0] == (field[1]-2)):
-            field = 'condition9'
-            dom = ((lambda m, n: (m >= 2) and (m == (n-2)), 
-                    lambda m, n: a3*m + b3*n + c3,
-                    '(m >= 2) and (m == (n-2))',
-                    '{0}*m + {1}*n + {2}'.format(a3, b3, c3))     
-                   for a3 in [0, 1]
-                   for b3 in [0, 1]
-                   for c3 in [0, 1, -1, 2, -2, 3]
-                   if (a3*2 + b3*4 + c3 >= 0))
-        elif ((field[1] >= 2) and (field[0] >= 2) and
-              (field[0] != field[1]) and (field[0] != field[1]-1) and
-              (field[0] != field[1]+1) and (field[0] != field[1]-2) and
-              (field[0] != field[1]+2)):
-            field = 'condition10'
-            dom = ((lambda m, n: ((n >= 2) and (m >= 2) and
-                                  (m != n) and (m != n-1) and
-                                  (m != n+1) and (m != n+2) and
-                                  (m != n-2)), 
-                    lambda m, n: a3*m + b3*n + c3,
-                    '((n >= 2) and (m >= 2) and \
-(m != n) and (m != n-1) and (m != n+1) and (m != n+2) and (m != n-2))',
-                    '{0}*m + {1}*n + {2}'.format(a3, b3, c3))     
-                   for a3 in [0, 1]
-                   for b3 in [0, 1]
-                   for c3 in [0, 1, -1, 2, -2, 3, -3]
-                   if (a3*2 + b3*2 + c3 >= 0))
-        elif (field[1] < 2) and (field[0] < 2):
-            dom = iter(range(4))
-    if not dom:
-        raise ValueError('field = {0}, dom is not defined.'.format(field))
-    return (field, dom)
-
-def construct(id_ls, id_neg):
-    """
-    Construct and return bunny that satisfies all identities from id_ls.
-    """        
-    fields = []
-    assigns = []
-    def f_updates(f2_dict, f1_dict):
-        """
-        iterator over all possibly valid updates of f2 and f1
-        """
-        if not fields:
-            raise StopIteration
-        (next_field, f_name) = fields[-1]
-        if next_field == None:
-            yield (f2_dict, f1_dict)
-        assign = assigns[-1]
-        for b in assign:
-            if f_name == 'f1':
-                f1_new = dict(f1_dict.items() + {next_field: b}.items())
-                yield (f2_dict, f1_new)
-            elif f_name == 'f2':
-                f2_new = dict(f2_dict.items() + {next_field: b}.items())
-                yield (f2_new, f1_dict)
-            
-    def backtrack(f2_dict, f1_dict):
+def _dict2f(dict_f, f_name):
+    @memo
+    def f(*args):
+        if len(args) == 1: args = args[0]
         try:
-            return next(f_updates(f2_dict, f1_dict))
-        except StopIteration:
-            if not fields:
-                raise StopIteration
-            (field, f_name) = fields.pop()
-            assign = assigns.pop()
-            if f_name == 'f1':
-                del(f1_dict[field])
-            elif f_name == 'f2':
-                del(f2_dict[field])
-            return backtrack(f2_dict, f1_dict)
+            return dict_f[args]
+        except KeyError:
+            raise ArgError(args, f_name)
         
-    def complete(f2_dict, f1_dict):
-        """
-        iterator over all f2 and f1 satisfying id_ls and not satisfying id_neg
-        """
-        while(True):
-            if id_neg != None:
-                sat, needed = InfBunny(f2_dict, f1_dict).check_id(id_neg, limit, True)
-                if sat == True:
-                    f2_dict, f1_dict = backtrack(f2_dict, f1_dict)
-                    continue
-            for id_ in id_ls:
-                sat, needed = InfBunny(f2_dict, f1_dict).check_id(id_, limit, True)
-                if sat == None:
-                    vals, f_name = needed 
-                    (next_field, assign) = domain(vals)
-                    fields.append((next_field, f_name))
-                    assigns.append(assign)
-                    break
-                elif sat == False:
-                    break
-            else:
-                if id_neg != None:
-                    sat, needed = InfBunny(f2_dict, f1_dict).check_id(id_neg, limit, True)
-                    if sat == None:
-                        vals, f_name = needed 
-                        (next_field, assign) = domain(vals)
-                        fields.append((next_field, f_name))
-                        assigns.append(assign)
-                    elif sat == False:
-                        yield f2_dict, f1_dict
-                else:
-                    yield f2_dict, f1_dict
-            f2_dict, f1_dict = backtrack(f2_dict, f1_dict)
-                    
-    f2_dict = {}
-    f1_dict = {}
-    limit = 9
-    return complete(f2_dict, f1_dict)
+    f.__name__ = f_name
+    f.dict = dict_f
+    return f
 
-def inf_bunnies(id_pos_ls, id_neg):
+################################INFINITE BUNNIES        
+class InfBunny(Bunny):
+    '''
+    Class for infinite bunnies
+    '''
+    
+    def __init__(self, f2, f1, f0):
+        '''
+        Constructor
+        '''
+        super(InfBunny, self).__init__(f2, f1, f0, 'N/A', 'Inf')
+        
+    def __deepcopy__(self, memo):
+        newone = type(self)(None, None, None)
+        newone.__dict__.update(self.__dict__)
+        for f_name in ['f0', 'f1', 'f2']:
+            self.funcs[f_name] = deepcopy(self.funcs[f_name], memo)
+        return newone
+    
+    def __str__(self):
+        s = '\n\tINFINITE BUNNY\n'
+        s += (str(self.funcs['f2']) + str(self.funcs['f1']) +
+              'f0:\n\t{}\n'.format(self.funcs['f0']))
+        return s
+    
+    def __eq__(self, other):
+        raise Exception, 'Equality not yet defined for infinite bunnies.'
+    
+    @classmethod
+    def find(cls, imp, wait_time, kern_size):
+        '''
+        Find infinite bunny which is counter-example to implication *imp*
+        '''
+        print 'Starting on implication: {}'.format(imp)
+        try: 
+            bun = next(_inf_bunnies(imp, wait_time, kern_size))
+            print 'Infinite bunny found', bun, '\n'
+            return (bun, 'Success')
+        except StopIteration:
+            reason = 'No infinite bunny found - possibilities exhausted'
+            print reason
+            return (None, reason)
+        except InconsistentBindingError:
+            reason = 'No infinite bunny found - inconsistency found'
+            print reason
+            return (None, reason)
+        except TimeoutError:
+            reason = 'No infinite bunny found - timeout'
+            print reason
+            return (None, reason)
+        
+class PiecewiseFunc(object):
+    '''
+    Class for piecewise-defined functions
+    '''
+    
+    def __init__(self, f_name, graph, size=None):
+        '''
+        Constructor.
+        *graph* - list representing graph of the function - (*input, output).
+        '''
+        self.graph = graph
+        self.name = f_name
+        self.else_val = None
+        self.size = size
+        
+    def __call__(self, *args):
+        var_args = []
+        for arg in args:
+            if not isinstance(arg, Variable):
+                arg = Value(arg)
+            var_args.append(arg)
+        args = tuple(var_args)
+        if self.size == None or not any(args[i] > self.size for i in xrange(len(args))):
+            for t in self.graph:
+                if args == t[:-1]:
+                    return t[-1]
+        for t in sorted(self.graph, key=str):
+            if not 'n' in reduce(lambda x,y: x+y, map(str, t), ''):
+                continue
+            n = None
+            for i in xrange(len(args)):
+                if isinstance(t[i].value, str) and args[i].value != None:
+                    new_n = args[i] - int(t[i].value[-2:])
+                    if not isinstance(n, Variable):
+                        n = new_n
+                    elif new_n != n:
+                        break
+                else:
+                    if t[i] != args[i]:
+                        break
+            else:
+                if isinstance(t[-1], Variable) and t[-1].value == None:
+                    return t[-1]
+                else:
+                    return eval(str(t[-1]))
+        if self.else_val != None:
+            return f.else_value
+        raise ArgError(args, self.name)
+    
+    def add_value(self, input, output):
+        assert not any(x[:-1] == input for x in self.graph)
+        self.graph.append(input + (output,))
+        
+    def __deepcopy__(self, memo):
+        newone = type(self)(None, None)
+        newone.__dict__.update(self.__dict__)
+        self.graph = deepcopy(self.graph, memo)
+        return newone
+
+    def __str__(self):
+        out_str = self.name + ':\n'
+        for t in set(self.graph):
+            out_str += '\t' + self.name + str(t[:-1]) + ':= ' + str(t[-1]) + '\n'
+        return out_str
+    
+    def __eq__(self, other):
+        raise Exception, 'Equality not yet defined for piecewise functions.'    
+
+class Variable(object):
+    '''
+    Class for representing a variable which value can be assigned later
+    '''
+    _ids = itertools.count(0)
+    _values_dict = dict()
+    _registry = []
+    
+    def __init__(self, id_ = None):
+        if id_ == None:
+            self.id = self._ids.next()
+            self._registry.append(self)
+            self.value = None
+        else:
+            self.id = id_
+        
+    @property
+    def value(self):
+        return self._values_dict[self.id]
+    
+    @value.setter
+    def value(self, new_value):
+        '''
+        *new_value* has to be either None or int or str
+        '''
+        if not (new_value == None or 
+                isinstance(new_value, int) or 
+                isinstance(new_value, str)):
+            raise Exception, "New value {} has to be either None or int or str".format(new_value)
+        if new_value == 'n':
+            new_value = 'n+0'
+        self._values_dict[self.id] = new_value
+        
+    def identify(self, other):
+        if isinstance(other, Value):
+            self.value = other.value
+        elif isinstance(other, Variable):
+            self.id = other.id
+        elif isinstance(other, int) or isinstance(other, str):
+            self.value = other
+        else:
+            raise Exception, 'Do not know how to identify to {}'.format(type(other))
+        
+    def __eq__(self, other):
+        return str(self) == str(other)
+        
+    def __ne__(self, other):
+        return not self.__eq__(other)
+    
+    def __gt__(self, other):
+        if isinstance(other, int):
+            if isinstance(self.value, int):
+                return self.value > other
+            elif isinstance(self.value, str):
+                return True
+        else:
+            raise Exception, 'Not implemented yet'
+        
+    def __hash__(self):
+        return self.__repr__().__hash__()
+        
+    def __deepcopy__(self, memo):
+        newone = type(self)(self.value)
+        return newone
+    
+    def __repr__(self):
+        if self.value != None:
+            return str(self.value)
+        else:
+            return 'Variable(id_={})'.format(self.id)
+        
+    def __add__(self, other):
+        if isinstance(other, int):
+            if isinstance(self.value, int):
+                new_value = self.value + other
+            elif isinstance(self.value, str):
+                new_value = 'n{:+}'.format(int(self.value[-2:]) + other)
+            return Value(new_value)
+        elif isinstance(other, Variable) and isinstance(other.value, int):
+            return self + other.value
+    
+    def __sub__(self, other):
+        if isinstance(other, Variable):
+            if isinstance(other.value, str):
+                if not isinstance(self.value, str):
+                    raise Exception, 'Trying to subtract {} from {}'.format(other, self)
+                return Value( int(self.value[-2:]) - int(other.value[-2:]) )
+            elif isinstance(other.value, int):
+                return self - other.value
+        else:
+            return self.__add__(-other)
+        
+    @classmethod
+    def clsreset(cls):
+        cls._registry = []
+        cls._ids = itertools.count(0)
+        cls._values_dict = dict()
+        
+class Value(Variable):
+    def __init__(self, arg):
+        if not (isinstance(arg, int) or 
+                isinstance(arg, str)):
+            raise Exception, "New value {} has to be either int or str".format(arg)
+        if arg == 'n':
+            arg = 'n+0'
+        self._value = arg
+        
+    def identify(self, other):
+        raise Exception, 'No way to identify value with {}'.format(other)
+        
+    @property
+    def value(self):
+        return self._value
+    
+#############################GENERATION OF INFINITE BUNNIES 2###############
+def _inf_bunnies(imp, wait_time, kern_size):
     '''
     Create infinite bunnies that satisfy all id_pos_ls and do not satisfy id_neg.
     
     Alternative version, uses bindings obtained from id_pos_ls and kind of
     backtracking.
-    '''    
-    for f2_dict, f1_dict in construct(id_pos_ls, id_neg):
-        for f2_d, f1_d in finish(f2_dict, f1_dict):
-            yield InfBunny(f2_d, f1_d)
+    '''
+    for bun in construct(imp, wait_time, kern_size):
+        yield bun
+            
+#########################################################################
+def identify_values(value1, value2):
+    if isinstance(value1, Variable) and value1.value == None:
+        value1.identify(value2)
+    elif isinstance(value2, Variable) and value2.value == None:
+        value2.identify(value1)
+    else:
+        raise InconsistentBindingError, 'At least one variable from {} and {} has to be unset.'.format(value1, value2)
         
+def check_consistency(bun, limit=7):
+    '''
+    Check consistency of function in bunny: for every input there should be only
+    one result. After evaluating a variable there can appear inconsistencies.
+    If duplicates found, they should be eliminated.
+    '''
+    def check_f(f):
+        inputs = [x[:-1] for x in f.graph]
+        duplicates = set([input for input in inputs if inputs.count(input) > 1])
+        if duplicates:
+            for x in duplicates:
+                results = [str(z[-1]) for z in f.graph if z[:-1] == x if z[-1].value != None] 
+                if len(set(results + [None])) > 2:
+                    return False
+                
+        for row in f.graph:
+            if 'n' in str(row[-1]):
+                if not ('n' in ''.join( map(str, row[:-1]) ) or 
+                        'Variable' in ''.join( map(str, row[:-1]) )):
+                    return False
+        n_rows = set([row for row in f.graph if 'n' in ''.join(map(str, row[:-1]))])
+        old_size = f.size
+        for n_row in n_rows:
+            # Delete row, check results are the same.
+            for n in range(limit):
+                input = tuple(map(eval, [str(x) for x in n_row[:-1]]))
+                orig = f(*input)
+                # Delete exactly n_row, not just equal row
+                for i in xrange(len(f.graph)):
+                    if f.graph[i] == n_row:
+                        graph_vars_profile = []
+                        n_row_vars_profile = []
+                        for j in xrange(len(n_row)):
+                            graph_var = f.graph[i][j]
+                            if type(graph_var) == Variable:
+                                graph_vars_profile.append(graph_var.id)
+                            else:
+                                graph_vars_profile.append(None)
+                            row_var = n_row[j]
+                            if type(row_var) == Variable:
+                                n_row_vars_profile.append(row_var.id)
+                            else:
+                                n_row_vars_profile.append(None)
+                        if n_row_vars_profile == graph_vars_profile:
+                            del f.graph[i]
+                            break
+                try:
+                    f.size = None
+                    new = f(*input)
+                except ArgError:
+                    pass
+                else:
+                    if orig != new:
+                        return False
+                finally:
+                    f.size = old_size
+                    f.graph.append(n_row)
+        return True
+        
+    return check_f(bun.funcs['f1']) and check_f(bun.funcs['f2'])
+
+def fetch_next(bun, undef_vars, def_vars, vars_its, get_new_var_it):
+    vars_number = len(undef_vars) + len(def_vars)
+    while True:
+        try:
+            var = undef_vars.pop()
+        except IndexError:
+            var = def_vars.pop()
+        else:
+            vars_its[var.id] = get_new_var_it(var)
+        var_it = vars_its[var.id]
+        consistent = None
+        while consistent != True:
+            try:
+                var.value = next(var_it)
+                consistent = check_consistency(bun)
+            except StopIteration:
+                var.value = None
+                undef_vars.append(var)
+                try:
+                    var = def_vars.pop()
+                    var_it = vars_its[var.id]
+                except IndexError:
+                    raise StopIteration
+        else:
+            def_vars.append(var)
+            assert len(undef_vars) + len(def_vars) == vars_number
+            if not undef_vars:
+                break
+
+def impose_bindings(bun, id_, domain):
+    evaluations = itertools.product(domain, repeat=len(id_.var_symbols))
+    for evaluation in evaluations:
+        point_dict = dict( zip(id_.var_symbols, evaluation) )
+        while True:
+            try:
+                lhs = id_.left_term(bun, point_dict)
+                rhs = id_.right_term(bun, point_dict)
+                if not rhs == lhs:
+                    identify_values(lhs, rhs)
+                    ### Not sure if consistency check is needed here
+                    consistent = check_consistency(bun)
+                    if not consistent:
+                        print 'raised from consistency check while imposing bindings'
+                        raise InconsistentBindingError
+                    ###
+                break
+            except ArgError as e:
+                new_v = Variable()
+                bun.funcs[e.f_name].add_value(e.vals, new_v)
+             
+def construct(imp, wait_time, kern_size=3):
+    """
+    Construct and return bunny that satisfies all identities from id_ls.
+    
+    @param limit: size of kern of algebra, which is essentially the counter-example. 
+    """
+    def get_range(var):
+        if isinstance(var, Variable):
+            return iter(range(kern_size+1) + ['n', 'n-1', 'n+1', 'n-2', 'n+2'])
+        print 'no range for {} ;('.format(var)
+        raise Exception
+    
+    Variable.clsreset()
+    ids_to_sat = list(imp.premise)
+    bun = InfBunny(PiecewiseFunc('f2', [], size=kern_size-1),
+                   PiecewiseFunc('f1', [], size=kern_size-1),
+                   Value(0))
+    for id_ in ids_to_sat:
+        impose_bindings(bun, id_, range(kern_size) + ["'n'"])
+    # Initialize parameters
+    vars_its = dict(); def_vars = []; undef_vars = []
+    for var in Variable._registry:
+        if var.value == None and not var in undef_vars:
+            undef_vars.append(var)
+    id_c = list(imp.conclusion)[0]
+    ts = time.time()
+    while True:
+        # Check time constraint
+        if time.time()-ts >= wait_time:
+            raise TimeoutError
+        fetch_next(bun, undef_vars, def_vars, vars_its, get_range)
+        undef_vars_conc = []; vars_its_conc = dict(); def_vars_conc = []
+        while True:
+            bun.funcs['f1'].size = None
+            bun.funcs['f2'].size = None
+            try:
+                sat = bun.check_id(id_c, kern_size+4)
+            except ArgError as e:
+                # Tested only for one absent value, may not work as expected for more values
+                new_v = Variable()
+                bun.funcs[e.f_name].add_value(e.vals, new_v)
+                undef_vars_conc.append(new_v)
+            else:
+                if sat == False:
+                    yield bun
+            bun.funcs['f2'].size = kern_size-1
+            bun.funcs['f1'].size = kern_size-1
+            if undef_vars_conc or def_vars_conc:
+                try:
+                    fetch_next(bun, undef_vars_conc, def_vars_conc,
+                               vars_its_conc, get_range)
+                except StopIteration:
+                    break
+            else:
+                break
+
+
+
+
+     
 ######################IF MAIN ROUTINE##################################
 if __name__ == '__main__':
-    id1 = identity.Identity.make_identity('x = a*(-x)')
-    id2 = identity.Identity.make_identity('x = -(a*x)')
-    print InfBunny.find([id1,], id2, limit=10, t_limit=10)
+    import cProfile
+    import fca
+    import identity
+    
+    #####################################################
+    
+    id20 = identity.Identity.make_identity('a=-(-(-a))')
+    id24 = identity.Identity.make_identity('a=(-a)*a')
+    id32 = identity.Identity.make_identity('a=-(a*a)')
+    id33 = identity.Identity.make_identity('a=-(a*x)')
+    id50 = identity.Identity.make_identity('x=(-a)*x')
+    id51 = identity.Identity.make_identity('x=(-x)*a')
+    
+    id56 = identity.Identity.make_identity('x=-(x*a)')
+    
+    imp = fca.Implication({id20, id24, id32, id33, id50, id51}, {id56})        
+    command_str = 'ibun = InfBunny.find(imp, wait_time=400, kern_size=4)[0]'
+    cProfile.run(command_str)
+    assert not ibun.check_id(id56, 10)
+    assert all(ibun.check_id(id_, 10) for id_ in [id20, id24, id32, id33, id50, id51])
+    assert 0
+    
+    ###################################################
+    
+    id6 = identity.Identity.make_identity('a=-(-a)')
+    id22 = identity.Identity.make_identity('a=a*(-a)')
+    id26 = identity.Identity.make_identity('a=x*(-a)')
+    id32 = identity.Identity.make_identity('a=-(a*a)')
+    id34 = identity.Identity.make_identity('a=-(x*a)')
+    id39 = identity.Identity.make_identity('-a=a*a')
+    id47 = identity.Identity.make_identity('x=x*(-x)')
+    id55 = identity.Identity.make_identity('x=-(a*x)')
+    id65 = identity.Identity.make_identity('-x=x*x')
+    
+    id41 = identity.Identity.make_identity('-a=x*a')
+    
+    id_pos_ls = [id6, id22, id26, id32, id34, id39, id47, id55, id65]
+#     id_pos_ls = [id6, id26, id34, id47, id55, id65]
+    imp = fca.Implication(id_pos_ls, {id41})        
+    command_str = 'ibun = InfBunny.find(imp, wait_time=30000, kern_size=3)[0]'
+    ts = time.time()
+    exec(command_str)
+    print time.time() - ts
+    
+    print id41, ibun.check_id(id41, 7, v=True) 
+    print [(str(id_), ibun.check_id(id_, 10, v=True)) for id_ in id_pos_ls]
+    assert not ibun.check_id(id41, 10)
+    assert all(ibun.check_id(id_, 10) for id_ in id_pos_ls)
+    #cProfile.run(command_str)
+    
+    #####################################################
+    
+    id_1p = identity.Identity.make_identity('x=x*(-x)')
+    id_2p = identity.Identity.make_identity('x=x*x')
+    id_3p = identity.Identity.make_identity('x=x*(-a)')
+    #id_4p = identity.Identity.make_identity('x=(-a)*x')
+    id_5p = identity.Identity.make_identity('x=a*(-x)')
+    id_1c = identity.Identity.make_identity('x=-(a*x)')
+    imp = fca.Implication({id_1p, id_2p, id_3p, id_5p}, {id_1c})
+    bunny_found = InfBunny.find(imp, wait_time=100, kern_size=3)[0]
+    assert not bunny_found.check_id(id_1c, 12)
+    assert bunny_found.check_id(id_1p, 12)
+    assert bunny_found.check_id(id_2p, 12)
+    assert bunny_found.check_id(id_3p, 12)
+    assert bunny_found.check_id(id_5p, 12)
+    
+    ####################################################
+    
+    id1 = identity.Identity.make_identity('a=-(a*x)')
+    id2 = identity.Identity.make_identity('x=-(a*x)') #55
+    imp = fca.Implication({id1, id2}, {})
+    bunny_found = InfBunny.find(imp, wait_time=30, kern_size=3)[0]
+    assert not bunny_found
+    
+    id1 = identity.Identity.make_identity('x=a*(-x)') #45
+    id2 = identity.Identity.make_identity('x=-(a*x)') #55
+    imp = fca.Implication({id2}, {id1})
+    bunny_found = InfBunny.find(imp, wait_time=30, kern_size=2)[0]
+    assert bunny_found
+    assert bunny_found.check_id(id2, 10)
+    assert not bunny_found.check_id(id1, 10)
+    
+    ##############################################################
+    
+    id20 = identity.Identity.make_identity('a=-(-(-a))')
+    id22 = identity.Identity.make_identity('a=a*(-a)')
+    id24 = identity.Identity.make_identity('a=(-a)*a')
+    id32 = identity.Identity.make_identity('a=-(a*a)')
+    id45 = identity.Identity.make_identity('x=a*(-x)')
+    id50 = identity.Identity.make_identity('x=(-a)*x')
+    
+    id55 = identity.Identity.make_identity('x=-(a*x)')
+    
+    imp = fca.Implication({id20, id22, id24, id32, id45, id50}, {id55})
+    command_str = 'ibun = InfBunny.find(imp, wait_time=200, kern_size=4)[0]'
+    cProfile.run(command_str)
+    assert not ibun.check_id(id55, 10)
+    assert all(ibun.check_id(id_, 10) for id_ in [id20, id22, id24, id32, id45, id50])
+    
+    #################################################
+    
+    id3 = identity.Identity.make_identity('a=-a')
+    id6 = identity.Identity.make_identity('a=-(-a)')
+    id8 = identity.Identity.make_identity('a=a*a')
+    id16 = identity.Identity.make_identity('x=x*a')
+    id20 = identity.Identity.make_identity('a=-(-(-a))')
+    id22 = identity.Identity.make_identity('a=a*(-a)')
+    id24 = identity.Identity.make_identity('a=(-a)*a')
+    id30 = identity.Identity.make_identity('a=(-x)*x')
+    id32 = identity.Identity.make_identity('a=-(a*a)')
+    id37 = identity.Identity.make_identity('-a=-(-a)')
+    id39 = identity.Identity.make_identity('-a=a*a')
+    id46 = identity.Identity.make_identity('x=x*(-a)')
+    id47 = identity.Identity.make_identity('x=x*(-x)')
+    id55 = identity.Identity.make_identity('x=-(a*x)')
+    id65 = identity.Identity.make_identity('-x=x*x')
+
+    id41 = identity.Identity.make_identity('-a=x*a')
+    
+    id_pos_ls = [id3, id6, id8, id16, id20, id22, id24, id30,
+                 id32, id37, id39, id46, id47, id55, id65]
+    
+    imp = fca.Implication(id_pos_ls, {id41})        
+    command_str = 'ibun = InfBunny.find(imp, wait_time=3000, kern_size=3)[0]'
+    exec(command_str)
+    print ibun.check_id(id41, 10, v=True)
+    print [ibun.check_id(id_, 10) for id_ in id_pos_ls]

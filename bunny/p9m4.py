@@ -182,7 +182,7 @@ def read_model(path):
                 NumN = N = int(i)
     # prepare return and return
     index = NumB + NumU*(Dom ** (Dom**2)) + NumN*(Dom ** (Dom**2 + Dom))
-    bun = bunny.Bunny(B, U, N, index)
+    bun = bunny.Bunny.dicts2bunny(B, U, N, index)
     return bun
 
 def read_all_models(dest):

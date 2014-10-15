@@ -9,11 +9,9 @@ import copy
 import itertools
 from string import maketrans
 import re
+import compiler
 
 import fca
-
-import term_parser
-import p9m4
 
 
 ######EXCEPTIONS###################################
@@ -53,7 +51,9 @@ class Identity(object):
         '''
         self.left_term = left_term
         self.right_term = right_term
-        self.vars = set(left_term.vars) | set(right_term.vars)
+        self.var_symbols = left_term.var_symbols | right_term.var_symbols
+        self.func_str = left_term.func_str + ' = ' + right_term.func_str
+        self.func_symbols = left_term.func_symbols + right_term.func_symbols
         
     def __str__(self):
         return (str(self.left_term.name).strip() + ' = ' +
@@ -75,16 +75,8 @@ class Identity(object):
         make identity from func_string
         '''
         left_str, right_str = map(lambda x: x.strip(), func_str.split('='))
-        # counting number of vars
-        vars_left = []
-        vars_right = []
-        for j in ['y', 'z', 'w']:
-            if re.search(r'(?<!\w){0}(?!\w)'.format(j), left_str):
-                vars_left.append(j)
-            if re.search(r'(?<!\w){0}(?!\w)'.format(j), right_str):
-                vars_right.append(j)
-        left_term = Term(left_str, left_str, vars_left)
-        right_term = Term(right_str, right_str, vars_right)
+        left_term = Term(left_str, left_str)
+        right_term = Term(right_str, right_str)
         return cls(left_term, right_term)
     
     def __eq__(self, other):
@@ -100,14 +92,14 @@ class Term(object):
     symbols should be specified in algebra.
     '''
     
-    def __init__(self, func_str, name, vars):
+    def __init__(self, func_str, name):
         '''
         Constructor
         '''
-        self.func_str = func_str
-        self.compiled_str = compile(func_str, '', 'eval') #term rewritten as applications of functions
+        self.func_str = func_str #term rewritten as applications of functions
+        self.compiled_str = compile(func_str, '', 'eval')
         self.name = name
-        self.vars = vars
+        self.var_symbols = set(_get_var_symbols(func_str))
         self.func_symbols = _get_func_symbols(func_str)
         
     @memo
@@ -124,7 +116,7 @@ class Term(object):
         for i, j in dict_values.items():
             exec('{0} = {1}'.format(i, j))
         for func_symbol in self.func_symbols:
-            exec(func_symbol + ' = algebra.' + func_symbol)
+            exec(func_symbol + ' = algebra.funcs["{}"]'.format(func_symbol))
         result = eval(self.compiled_str)
         if isinstance(result, int) and (result < 0):
             info = 'result = {0}, '.format(result)
@@ -144,13 +136,29 @@ class Term(object):
         '''
         make term from str
         '''
-        parsed = term_parser.parse_str(str_)
-        return cls.parsed2term(parsed)
+        instance = compiler.parse(str_)
+        parsed = str(instance.node.nodes[0].expr)
+        replace_lst = [('Mul(', 'f2'), ('UnarySub', 'f1'), ("Name('", ''),
+                       ('a', 'f0'), ("')", ''), (' ', '')]
+        func_str = parsed
+        for old, new in replace_lst:
+            func_str = func_str.replace(old, new)
+        # parse function returns all multiplications with double parentheses
+        par_balance = 0
+        for pos in xrange(len(func_str)):
+            c = func_str[pos]
+            if c == '(':
+                par_balance += 1
+            elif c == ')':
+                par_balance -= 1
+            if par_balance == -1:
+                func_str = func_str[:pos] + func_str[(pos+1):]
+        return cls(func_str, str_)
     
     @classmethod
     def parsed2term(cls, parsed):
         '''
-        make term from parsed output from bunny_exploration.term_parser.
+        make term from parsed string.
         
         @attention: works only for signature of binary *f2*, unary *f1*,
         and nullary *f0* functions.
@@ -187,10 +195,10 @@ class Term(object):
         # change numbers in elements into variable names
         var_dict = {0: 'x', 1: 'y', 2: 'z', 3: 'w'}
         var_list = [var_dict[elem] for elem in elems]
-        vars = set(var_list)
+        #vars = set(var_list)
         
         func_str = apply_op(var_list, op_order, op_types)
-        return cls(func_str, name, vars)
+        return cls(func_str, name)
 
 def _get_func_symbols(func_str):
     """
@@ -200,6 +208,13 @@ def _get_func_symbols(func_str):
     nullary function ends with name. 
     """
     return [x.group() for x in re.finditer(r"(?<!\w)f[0-9]\w*", func_str)]
+
+def _get_var_symbols(func_str):
+    """
+    Extract variable symbols from functional string. Variable symbols are:
+    'x', 'y', 'z', 'w'.
+    """
+    return [x.group() for x in re.finditer(r"(?<!\w)[w-z]", func_str)]
     
 def generate_ts(len_limit, num_vars=1):
     '''
@@ -328,5 +343,5 @@ if __name__ == '__main__':
         print '\n'.join(map(str, g))
         print '\ntotal: ', len(g)
         return g
-    for i in range(7):
+    for i in range(6):
         print_ids(i, 3)
