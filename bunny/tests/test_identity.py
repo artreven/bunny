@@ -5,7 +5,7 @@ Created on Apr 28, 2013
 
 @author: artem
 '''
-import bunny
+import bunny.bunny
 from bunny.identity import *
 
 def test_make_identity():
@@ -42,12 +42,10 @@ def test_parsed2term():
     assert t3.func_str == 'f2(f2(f0,f1(x)),f1(y))'
     
 def test_evaluate_term():
-    f2_dict = {'condition1': (lambda x, y: True,
-                              lambda x, y: x)}
-    f1_dict = {'condition1': (lambda x: True,
-                              lambda x: x + 1)}
+    f2_dict = {(0, 0): 0, (1, 0): 1}
+    f1_dict = {0: 1, 1: 2}
     f0 = 0
-    bun = bunny.bunny.Bunny(f2_dict, f1_dict, f0, 'N')
+    bun = bunny.bunny.Bunny.dicts2bunny(f2_dict, f1_dict, f0, 'N')
     str1 = 'x'
     str2 = '-(x*a)'
     t1 = Term.parsed2term(bunny.term_parser.parse_str(str1))
