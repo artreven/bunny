@@ -145,14 +145,21 @@ class Term(object):
             func_str = func_str.replace(old, new)
         # parse function returns all multiplications with double parentheses
         par_balance = 0
+        f2_comma_balance = func_str.count('f2')
+        to_rm = []
         for pos in xrange(len(func_str)):
             c = func_str[pos]
             if c == '(':
                 par_balance += 1
             elif c == ')':
                 par_balance -= 1
-            if par_balance == -1:
-                func_str = func_str[:pos] + func_str[(pos+1):]
+                if par_balance < f2_comma_balance:
+                    par_balance += 1
+                    to_rm.append(pos)
+            elif c == ',':
+                f2_comma_balance -= 1
+        func_str = ''.join([func_str[i] for i in xrange(len(func_str))
+                            if not i in to_rm])
         return cls(func_str, str_)
     
     @classmethod
