@@ -304,7 +304,7 @@ class PiecewiseFunc(object):
                 else:
                     return eval(str(t[-1]))
         if self.else_val != None:
-            return f.else_value
+            return self.else_val
         raise ArgError(args, self.name)
     
     def add_value(self, input, output):
@@ -319,8 +319,9 @@ class PiecewiseFunc(object):
 
     def __str__(self):
         out_str = self.name + ':\n'
-        for t in set(self.graph):
-            out_str += '\t' + self.name + str(t[:-1]) + ':= ' + str(t[-1]) + '\n'
+        entries = set(['\t' + self.name + str(t[:-1]) + ':= ' + str(t[-1]) + '\n'
+                       for t in self.graph])
+        out_str += ''.join(sorted(entries))
         if self.else_val != None:
             out_str += '\t' + self.name + '(else):= ' + str(self.else_val) + '\n'
         return out_str
@@ -355,8 +356,9 @@ class Variable(object):
         '''
         if not (new_value == None or 
                 isinstance(new_value, int) or 
-                isinstance(new_value, str)):
-            raise Exception, "New value {} has to be either None or int or str".format(new_value)
+                (isinstance(new_value, str) and new_value[0] == 'n')):
+            raise Exception, ("New value {} has to be".format(new_value) +
+                              " either None or int or str starting with 'n'")
         if new_value == 'n':
             new_value = 'n+0'
         self._values_dict[self.id] = new_value
@@ -386,8 +388,9 @@ class Variable(object):
         else:
             raise Exception, 'Not implemented yet'
         
-    def __hash__(self):
-        return self.__repr__().__hash__()
+    __hash__ = None
+#     def __hash__(self):
+#         return self.__repr__().__hash__()
         
     def __deepcopy__(self, memo):
         newone = type(self)(self.value)
@@ -427,17 +430,29 @@ class Variable(object):
         cls._ids = itertools.count(0)
         cls._values_dict = dict()
         
+def identify_variables(var1, var2):
+    if isinstance(var2, Variable) and var2.value == None:
+        var2.identify(var1)
+    elif isinstance(var1, Variable) and var1.value == None:
+        var1.identify(var2)
+    else:
+        raise InconsistentBindingError, 'At least one variable from {} and {} has to be unset.'.format(var1, var2)
+        
 class Value(Variable):
     def __init__(self, arg):
         if not (isinstance(arg, int) or 
-                isinstance(arg, str)):
-            raise Exception, "New value {} has to be either int or str".format(arg)
+                (isinstance(arg, str) and arg[0] == 'n')):
+            raise Exception, ("New value {} has to be".format(arg) +
+                              " either int or str starting with 'n'")
         if arg == 'n':
             arg = 'n+0'
         self._value = arg
         
     def identify(self, other):
         raise Exception, 'No way to identify value with {}'.format(other)
+    
+    def __hash__(self):
+        return self.value.__hash__()
         
     @property
     def value(self):
@@ -452,104 +467,80 @@ def _inf_bunnies(imp, wait_time, kern_size):
     backtracking.
     '''
     for bun in construct(imp, wait_time, kern_size):
+        assert any(not bun.check_id(id_, kern_size+4) for id_ in imp.conclusion)
+        assert all(bun.check_id(id_, kern_size+4) for id_ in imp.premise)
         yield bun
             
-#########################################################################
-def identify_values(value1, value2):
-    if isinstance(value1, Variable) and value1.value == None:
-        value1.identify(value2)
-    elif isinstance(value2, Variable) and value2.value == None:
-        value2.identify(value1)
-    else:
-        raise InconsistentBindingError, 'At least one variable from {} and {} has to be unset.'.format(value1, value2)
-        
+#######################################################################
 def check_consistency(bun, llimit=3, ulimit=7):
     '''
-    Check consistency of function in bunny: for every input there should be only
-    one result. After evaluating a variable there can appear inconsistencies.
+    Check consistency of function in bunny: for every input there should be not
+    more than one result.
     '''
     def check_f(f):
+        # Check for simple duplicates
         inputs = [x[:-1] for x in f.graph]
-        duplicates = set([input for input in inputs if inputs.count(input) > 1])
+        duplicates = set([tuple(map(str, input)) for input in inputs if inputs.count(input) > 1])
         if duplicates:
             for x in duplicates:
-                results = [str(z[-1]) for z in f.graph if z[:-1] == x if z[-1].value != None] 
+                results = [str(z[-1]) for z in f.graph
+                           if tuple(map(str, z[:-1])) == x
+                           if z[-1].value != None] 
                 if len(set(results + [None])) > 2:
                     return False
-                
+        # check that the output varies only if the input varies
         for row in f.graph:
             if 'n' in str(row[-1]):
                 row_str = ''.join( map(str, row[:-1]) )
                 if not ('n' in row_str or 'Variable' in row_str):
                     return False
-        n_rows = set([row for row in f.graph if 'n' in ''.join(map(str, row[:-1]))])
-        old_size = f.size
+        # check that if the input varies and several outputs possible, all the outputs are equal    
+        n_rows = [row for row in f.graph if 'n' in ''.join(map(str, row[:-1]))]
         for n_row in n_rows:
-            # Find exactly n_row, not just equal row
-            n_row_vars_profile = []
-            for j in xrange(len(n_row)):
-                row_var = n_row[j]
-                if type(row_var) == Variable:
-                    n_row_vars_profile.append(row_var.id)
-                else:
-                    n_row_vars_profile.append(None)
-            for i in xrange(len(f.graph)):
-                if f.graph[i] == n_row:
-                    graph_vars_profile = []
-                    for j in xrange(len(n_row)):
-                        graph_var = f.graph[i][j]
-                        if type(graph_var) == Variable:
-                            graph_vars_profile.append(graph_var.id)
-                        else:
-                            graph_vars_profile.append(None)
-                    if n_row_vars_profile == graph_vars_profile:
-                        n_row_i = i
-                        break
-            del f.graph[n_row_i]
-            f.graph.append(n_row)
-            # Delete row, check results are the same.
+            f_row = PiecewiseFunc('', [n_row])
             for n in range(llimit, ulimit):
-                input = tuple(map(eval, [str(x) for x in n_row[:-1]]))
+                input = tuple(map(eval, map(str, n_row[:-1])))
+                if all(x <= f.size for x in input):
+                    continue
                 orig = f(*input)
+                new = f_row(*input)
+                if (orig != new and 
+                    (type(orig) != Variable or orig.value != None) and 
+                    (type(new) != Variable or new.value != None)): 
+                        return False
+        # check that there are bindings beyond kern_size, they comply with varying case        
+        for t in f.graph:
+            if any(x > f.size for x in t[:-1]):
                 try:
-                    f.graph.pop()
-                    f.size = None
-                    new = f(*input)
+                    f_out = f(*t[:-1])
                 except ArgError:
                     pass
                 else:
-                    if orig != new:
+                    if t[-1] != f_out and (type(f_out) != Variable or f_out.value != None):
                         return False
-                finally:
-                    f.size = old_size
-                    f.graph.append(n_row)
         return True
         
     return check_f(bun.funcs['f1']) and check_f(bun.funcs['f2'])
 
-def fetch_next(bun, undef_vars, def_vars, vars_its, get_new_var_it):
+def fetch_next(bun, undef_vars, def_vars, get_next_assignment):
     vars_number = len(undef_vars) + len(def_vars)
     while True:
         try:
             var = undef_vars.pop()
         except IndexError:
             var = def_vars.pop()
-        else:
-            vars_its[var.id] = get_new_var_it(var)
-        var_it = vars_its[var.id]
         consistent = None
         while consistent != True:
             try:
-                var.value = next(var_it)
+                var.value = get_next_assignment(var)
                 consistent = check_consistency(bun,
-                                               bun.funcs['f1'].size,
-                                               bun.funcs['f1'].size+3)
+                                               llimit=bun.funcs['f1'].size,
+                                               ulimit=bun.funcs['f1'].size+4)
             except StopIteration:
                 var.value = None
                 undef_vars.append(var)
                 try:
                     var = def_vars.pop()
-                    var_it = vars_its[var.id]
                 except IndexError:
                     raise StopIteration
         else:
@@ -558,7 +549,13 @@ def fetch_next(bun, undef_vars, def_vars, vars_its, get_new_var_it):
             if not undef_vars:
                 break
 
-def impose_bindings(bun, id_, domain):
+def impose_bindings(bun, id_, domain, var_deps):
+    """
+    Put constraints that arise from identities into bunny (bindings).
+    We check and find constraints for points in *domain*.
+    *var_deps* represents the dependencies on the variables. keys are id 
+    numbers of variables.
+    """
     evaluations = itertools.product(domain, repeat=len(id_.var_symbols))
     for evaluation in evaluations:
         point_dict = dict( zip(id_.var_symbols, evaluation) )
@@ -567,7 +564,7 @@ def impose_bindings(bun, id_, domain):
                 lhs = id_.left_term(bun, point_dict)
                 rhs = id_.right_term(bun, point_dict)
                 if not rhs == lhs:
-                    identify_values(lhs, rhs)
+                    identify_variables(lhs, rhs)
                     ### Not sure if consistency check is needed here
                     consistent = check_consistency(bun)
                     if not consistent:
@@ -577,70 +574,135 @@ def impose_bindings(bun, id_, domain):
                 break
             except ArgError as e:
                 new_v = Variable()
+                var_deps[new_v.id] = e.vals
                 bun.funcs[e.f_name].add_value(e.vals, new_v)
-             
+
+def falsify_id(bun, id_c, get_next_assignment, var_deps):
+    undef_vars_conc = []; def_vars_conc = []
+    kern_size = bun.funcs['f1'].size + 1
+    while True:
+        bun.funcs['f1'].size = None
+        bun.funcs['f2'].size = None
+        try:
+            sat = bun.check_id(id_c, kern_size+4)
+        except ArgError as e:
+            new_v = Variable()
+            bun.funcs[e.f_name].add_value(e.vals, new_v)
+            undef_vars_conc.append(new_v)
+            var_deps[new_v.id] = e.vals
+        else:
+            if sat == False:
+                break
+        bun.funcs['f2'].size = kern_size-1
+        bun.funcs['f1'].size = kern_size-1
+        if undef_vars_conc or def_vars_conc:
+            try:
+                fetch_next(bun, undef_vars_conc, def_vars_conc, get_next_assignment)
+            except StopIteration:
+                break
+        else:
+            break
+            
 def construct(imp, wait_time, kern_size=3):
     """
     Construct and return bunny that satisfies all identities from id_ls.
     
-    @param limit: size of kern of algebra, which is essentially the counter-example. 
+    @param kern_size: size of kernel of algebra, which is essentially the
+    counter-example. 
     """
-    def get_range(var):
-        if isinstance(var, Variable):
-            return iter(range(kern_size+1) + ['n+0', 'n-1', 'n+1', 'n-2', 'n+2'])
-        print 'no range for {} ;('.format(var)
-        raise Exception
+    def get_next_assignment(var):
+        assert isinstance(var, Variable)
+        dep_vars = var_deps[var.id]
+        n_vars = list(filter(lambda x: 'n' in str(x), dep_vars))
+        n_vars.sort(key=lambda x: int(str(x.value[-2:])))
+        if var.value == None:
+            return 0
+        elif isinstance(var.value, int) and var.value < kern_size+1:
+            return var.value + 1
+        elif isinstance(var.value, int) and n_vars:
+            return (n_vars[0] - 2).value
+        elif isinstance(var.value, str) and int(var.value[-2:]) < int((n_vars[-1]+2).value[-2:]):
+            return (var + 1).value
+        elif not n_vars or int(var.value[-2:]) >= int((n_vars[-1]+2).value[-2:]):
+            raise StopIteration
     
     Variable.clsreset()
-    ids_to_sat = list(imp.premise)
     bun = InfBunny(PiecewiseFunc('f2', [], size=kern_size-1),
                    PiecewiseFunc('f1', [], size=kern_size-1),
                    Value(0))
-    for id_ in ids_to_sat:
-        impose_bindings(bun, id_, range(kern_size) + ["'n+0'"])
-    # Initialize parameters
+    var_deps = dict()
+    for id_ in imp.premise:
+        impose_bindings(bun, id_, range(kern_size) + ["'n+0'"], var_deps)
     vars_its = dict(); def_vars = []; undef_vars = []
     for var in Variable._registry:
         if var.value == None and not var in undef_vars:
-            undef_vars.append(var)
+            undef_vars.insert(0, var)
+    
     id_c = list(imp.conclusion)[0]
     ts = time.time()
     while True:
         # Check time constraint
         if time.time()-ts >= wait_time:
             raise TimeoutError
-        fetch_next(bun, undef_vars, def_vars, vars_its, get_range)
-        undef_vars_conc = []; vars_its_conc = dict(); def_vars_conc = []
-        while True:
-            bun.funcs['f1'].size = None
-            bun.funcs['f2'].size = None
-            try:
-                sat = bun.check_id(id_c, kern_size+4)
-            except ArgError as e:
-                # Tested only for one absent value, may not work as expected for more values
-                new_v = Variable()
-                bun.funcs[e.f_name].add_value(e.vals, new_v)
-                undef_vars_conc.append(new_v)
-            else:
-                if sat == False:
-                    bun.funcs['f2'].else_val = 0
-                    bun.funcs['f1'].else_val = 0
-                    yield bun
-            bun.funcs['f2'].size = kern_size-1
-            bun.funcs['f1'].size = kern_size-1
-            if undef_vars_conc or def_vars_conc:
-                try:
-                    fetch_next(bun, undef_vars_conc, def_vars_conc,
-                               vars_its_conc, get_range)
-                except StopIteration:
-                    break
-            else:
-                break
+        fetch_next(bun, undef_vars, def_vars, get_next_assignment)
+        try:
+            sat = bun.check_id(id_c, kern_size+4)
+        except ArgError:
+            falsify_id(bun, id_c, get_next_assignment, var_deps)
+            sat = bun.check_id(id_c, kern_size+4)
+        if sat == False:
+            bun.funcs['f2'].else_val = 0
+            bun.funcs['f1'].else_val = 0
+            yield bun
 
 
-
-
-     
 ######################IF MAIN ROUTINE##################################
 if __name__ == '__main__':
-    pass
+    import identity
+    import fca
+    import cProfile
+    
+    ##############################################################
+    
+    id20 = identity.Identity.make_identity('a=-(-(-a))')
+    id22 = identity.Identity.make_identity('a=a*(-a)')
+    id24 = identity.Identity.make_identity('a=(-a)*a')
+    id32 = identity.Identity.make_identity('a=-(a*a)')
+    id45 = identity.Identity.make_identity('x=a*(-x)')
+    id50 = identity.Identity.make_identity('x=(-a)*x')
+    
+    id55 = identity.Identity.make_identity('x=-(a*x)')
+    
+#     ids_pos = {id22, id24, id32, id45, id50}
+    ids_pos = {id20, id22, id24, id32, id45, id50}
+    
+    imp = fca.Implication(ids_pos, {id55})
+    command_str = 'ibun = InfBunny.find(imp, wait_time=200, kern_size=3)[0]'
+    cProfile.run(command_str)
+    print id55, ibun.check_id(id55, 7, v=True) 
+    print [(str(id_), ibun.check_id(id_, 10, v=True)) for id_ in ids_pos]
+    assert not ibun.check_id(id55, 10)
+    assert all(ibun.check_id(id_, 10) for id_ in ids_pos)
+    
+    ##############################################################
+    
+    id6 = identity.Identity.make_identity('a=-(-a)')
+    id22 = identity.Identity.make_identity('a=a*(-a)')
+    id26 = identity.Identity.make_identity('a=x*(-a)')
+    id32 = identity.Identity.make_identity('a=-(a*a)')
+    id34 = identity.Identity.make_identity('a=-(x*a)')
+    id39 = identity.Identity.make_identity('-a=a*a')
+    id47 = identity.Identity.make_identity('x=x*(-x)')
+    id55 = identity.Identity.make_identity('x=-(a*x)')
+    id65 = identity.Identity.make_identity('-x=x*x')
+    
+    id41 = identity.Identity.make_identity('-a=x*a')
+    
+    id_pos_ls = [id6, id22, id26, id32, id34, id39, id47, id55, id65]
+    imp = fca.Implication(id_pos_ls, {id41})        
+    command_str = 'ibun = InfBunny.find(imp, wait_time=30000, kern_size=3)[0]'
+    cProfile.run(command_str)
+    print id41, ibun.check_id(id41, 7, v=True) 
+    print [(str(id_), ibun.check_id(id_, 10, v=True)) for id_ in id_pos_ls]
+    assert not ibun.check_id(id41, 10)
+    assert all(ibun.check_id(id_, 10) for id_ in id_pos_ls)
