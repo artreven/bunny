@@ -6,6 +6,7 @@ Created on Apr 28, 2013
 @author: artem
 '''
 from nose.tools import nottest, raises
+import sympy
 
 import fca
 
@@ -46,6 +47,17 @@ class TestVariable:
         varn1.value = 'n+1'
         assert varn1 - varn_1 == 2
         assert varn_1 - varn1 == -2
+        varm1 = bunny.bunny.Variable()
+        varm1.value = 'm+1'
+        assert varm1 + varn_1 == 'm+n+0'
+        
+    @raises(Exception)
+    def test_str_diff_raises(self):
+        varn1 = bunny.bunny.Variable()
+        varn1.value = 'n+1'
+        varm1 = bunny.bunny.Variable()
+        varm1.value = 'm+1'
+        varm1 - varn_1
         
     def test_str_diff2(self):
         varn1 = bunny.bunny.Variable()
@@ -60,7 +72,19 @@ class TestVariable:
         tricky_val = bunny.bunny.Value(0)
         tricky_val.vary = True
         assert not varn == tricky_val
-        assert not tricky_val == varn 
+        assert not tricky_val == varn
+    
+    def test_varm(self):
+        varm = bunny.bunny.Variable()
+        varm.value = 'm'
+        assert varm+2 == 'm+2'
+    
+    def test_sum_varm_varn(self):
+        varm = bunny.bunny.Variable()
+        varm.value = 'm'
+        varn = bunny.bunny.Variable()
+        varn.value = 'n'
+        assert (varm+varn) == 'm+n+0'
         
 class TestPFunc:    
     def setUp(self):
@@ -72,16 +96,23 @@ class TestPFunc:
         self.f1 = bunny.bunny.PiecewiseFunc('f', graph)
         graph = ((varn, varn, varn_1),)
         self.f2 = bunny.bunny.PiecewiseFunc('f', graph)
+        varm_1 = bunny.bunny.Variable()
+        varm_1.value = 'm-1'
+        graph = ((varm_1, bunny.bunny.Value(0), bunny.bunny.Value(0)),)
+        self.f3 = bunny.bunny.PiecewiseFunc('f', graph)
+        self.f3.size = 3
+        graph = ((bunny.bunny.Value(0), bunny.bunny.Value(5)),)
+        self.f4 = bunny.bunny.PiecewiseFunc('f', graph)
     
     @raises(bunny.bunny.ArgError)
     def test_output1(self):
         varn1 = bunny.bunny.Variable()
         varn1.value = 'n+1'
-        self.f2(0, varn1)
+        print self.f2(0, varn1)
         
     @raises(bunny.bunny.ArgError)
     def test_output2(self):
-        self.f2(9, 0)
+        print self.f2(9, 0)
         
     @raises(bunny.bunny.ArgError)
     def test_output3(self):
@@ -89,10 +120,39 @@ class TestPFunc:
         varn.value = 'n+0'
         print self.f1(varn, varn)
         
-    def test_duplicates(self):
+    @raises(bunny.bunny.ArgError)
+    def test_output4(self):
+        assert self.f4(0) == 5
+        varn = bunny.bunny.Variable()
+        print self.f4(varn)
+        
+    @raises(bunny.bunny.ArgError)
+    def test_size(self):
+        print self.f3(2, 0)
+        
+    def test_compute_output(self):
         varn1 = bunny.bunny.Variable()
         varn1.value = 'n+1'
         assert self.f1(varn1, 0) == 'n+0'
+        
+    def test_func_m(self):
+        assert self.f3('m-1', 0) == 0
+        assert self.f3('m+0', 0) == 0
+        assert self.f3(5, 0) == 0
+        
+    def test_func_mn(self):
+        varm = bunny.bunny.Variable()
+        varm.value = 'm+0'
+        varn = bunny.bunny.Variable()
+        varn.value = 'n+0'
+        graph = ((varm, varn, bunny.bunny.Value(5)),)
+        f = bunny.bunny.PiecewiseFunc('f', graph)
+        f.size = 5
+        assert f('m+0', 'n+0') == bunny.bunny.Value(5)
+        graph = ((varn, varm, bunny.bunny.Value(5)),)
+        f = bunny.bunny.PiecewiseFunc('f', graph)
+        f.size = None
+        assert f('n+0', 'm+0') == bunny.bunny.Value(5)
         
 def test_consistency():
     val = bunny.bunny.Value
@@ -142,7 +202,7 @@ class TestInfBunny():
         id1 = bunny.identity.Identity.make_identity('x=a*(-x)') #45
         id2 = bunny.identity.Identity.make_identity('x=-(a*x)') #55
         imp = fca.Implication({id1}, {id2})
-        bunny_found = bunny.bunny.InfBunny.find(imp, wait_time=30, kern_size=3)[0]
+        bunny_found = bunny.bunny.InfBunny.find(imp, wait_time=10, kern_size=3)[0]
         assert bunny_found != None
         assert bunny_found.check_id(id1, 10)
         assert not bunny_found.check_id(id2, 10)
@@ -156,7 +216,7 @@ class TestInfBunny():
         id50 = bunny.identity.Identity.make_identity('x=(-a)*x')
         id55 = bunny.identity.Identity.make_identity('x=-(a*x)') #55
         imp = fca.Implication({id45, id50}, {id55})
-        bunny_found = bunny.bunny.InfBunny.find(imp, wait_time=30, kern_size=3)[0]
+        bunny_found = bunny.bunny.InfBunny.find(imp, wait_time=10, kern_size=3)[0]
         assert bunny_found != None
         assert bunny_found.check_id(id45, 10)
         assert not bunny_found.check_id(id55, 10)
@@ -169,7 +229,7 @@ class TestInfBunny():
         id1 = bunny.identity.Identity.make_identity('x=a*(-x)') #45
         id2 = bunny.identity.Identity.make_identity('x=-(a*x)') #55
         imp = fca.Implication({id2}, {id1})
-        bunny_found = bunny.bunny.InfBunny.find(imp, wait_time=30, kern_size=3)[0]
+        bunny_found = bunny.bunny.InfBunny.find(imp, wait_time=10, kern_size=3)[0]
         assert bunny_found != None
         assert bunny_found.check_id(id2, 10)
         assert not bunny_found.check_id(id1, 10)
@@ -185,7 +245,7 @@ class TestInfBunny():
         idn = bunny.identity.Identity.make_identity('a=(x*a)') #10
         #entspricht G_603 - G_618
         imp = fca.Implication({id1, id2, id3}, {idn})
-        bunny_found = bunny.bunny.InfBunny.find(imp, wait_time=3, kern_size=3)[0]
+        bunny_found = bunny.bunny.InfBunny.find(imp, wait_time=30, kern_size=3)[0]
         assert bunny_found != None
         assert bunny_found.check_id(id1, 10)
         assert bunny_found.check_id(id2, 10)
@@ -207,7 +267,7 @@ class TestInfBunny():
         id55 = bunny.identity.Identity.make_identity('x=-(a*x)')
         
         imp = fca.Implication({id20, id22, id24, id32, id45, id50}, {id55})
-        bunny_found = bunny.bunny.InfBunny.find(imp, wait_time=20, kern_size=3)[0]
+        bunny_found = bunny.bunny.InfBunny.find(imp, wait_time=100, kern_size=3)[0]
         assert bunny_found != None
         assert bunny_found.check_id(id20, 10)
         assert bunny_found.check_id(id22, 10)
@@ -229,7 +289,7 @@ class TestInfBunny():
         id56 = bunny.identity.Identity.make_identity('x=-(x*a)')
         
         imp = fca.Implication({id20, id24, id32, id33, id50, id51}, {id56})        
-        bunny_found = bunny.bunny.InfBunny.find(imp, wait_time=20, kern_size=3)[0]
+        bunny_found = bunny.bunny.InfBunny.find(imp, wait_time=100, kern_size=3)[0]
         assert bunny_found != None
         
     def test_find203(self):
@@ -249,7 +309,7 @@ class TestInfBunny():
         id_pos_ls = [id6, id22, id26, id32, id34, id39, id47, id55, id65]
         
         imp = fca.Implication(id_pos_ls, {id41})        
-        bunny_found, reason = bunny.bunny.InfBunny.find(imp, wait_time=40, kern_size=3)
+        bunny_found, reason = bunny.bunny.InfBunny.find(imp, wait_time=100, kern_size=3)
         # see G566 from Kestler's dissertation
         assert bunny_found != None
         
@@ -270,8 +330,49 @@ class TestInfBunny():
         id_pos_ls = [id1, id2, id3, id4, id5, id6, id7]
         
         imp = fca.Implication(id_pos_ls, {idn})  
-        bunny_found, reason = bunny.bunny.InfBunny.find(imp, wait_time=40, kern_size=4)
+        bunny_found, reason = bunny.bunny.InfBunny.find(imp, wait_time=100, kern_size=4)
         assert bunny_found != None
+        
+    def test_find205(self):
+        imp_str = 'f0 = f2(f0,f0), x = x, f0 = f1(f2(f0,f0)), f0 = f1(f1(f1(f0))), x = f2(f1(x),f0), f1(f0) = f2(f0,f0), x = f2(x,f1(x)), f0 = f1(f0), f0 = f1(f1(f0)), f1(f0) = f1(f1(f0)), f0 = f2(f0,f1(f0)), f0 = f2(f1(f0),f0), x = f2(f0,f1(x)) => x = f1(f2(f0,x)), x = f1(f2(x,f0))'
+        premise, conclusion = imp_str.split('=>')
+        premise_ids = map(lambda x: x.strip(), premise.split(', '))
+        conclusion_ids = map(lambda x: x.strip(), conclusion.split(', '))
+        ids_pos = map(lambda x: bunny.identity.Identity.func_str2id(x), premise_ids)
+        ids_neg = map(lambda x: bunny.identity.Identity.func_str2id(x), conclusion_ids)
+        imp = fca.Implication(ids_pos, ids_neg)
+            
+        ibun = bunny.bunny.InfBunny.find(imp, wait_time=15, kern_size=3)[0]
+        assert ibun != None
+        assert not all(ibun.check_id(id_, 10) for id_ in ids_neg)
+        assert all(ibun.check_id(id_, 10) for id_ in ids_pos)
+        
+    def test_find205(self):
+        imp_str = 'f0 = f2(f0,f0), x = f2(f0,f1(x)), f0 = f2(f1(f0),f0), f0 = f2(f1(x),f0), x = x, f0 = f2(f0,f1(f0)), f0 = f2(f1(x),x), f0 = f2(x,f1(x)) => f0 = f2(x,f0)'
+        premise, conclusion = imp_str.split('=>')
+        premise_ids = map(lambda x: x.strip(), premise.split(', '))
+        conclusion_ids = map(lambda x: x.strip(), conclusion.split(', '))
+        ids_pos = map(lambda x: bunny.identity.Identity.func_str2id(x), premise_ids)
+        ids_neg = map(lambda x: bunny.identity.Identity.func_str2id(x), conclusion_ids)
+        imp = fca.Implication(ids_pos, ids_neg)
+
+        ibun = bunny.bunny.InfBunny.find(imp, wait_time=15, kern_size=3)[0]
+        assert not ibun
+        
+        
+    def test_find300(self):
+        imp_str = 'x = x, x = f1(f2(y,x)) => x = f2(f0,f1(x))'
+        premise, conclusion = imp_str.split('=>')
+        premise_ids = map(lambda x: x.strip(), premise.split(', '))
+        conclusion_ids = map(lambda x: x.strip(), conclusion.split(', '))
+        ids_pos = map(lambda x: bunny.identity.Identity.func_str2id(x), premise_ids)
+        ids_neg = map(lambda x: bunny.identity.Identity.func_str2id(x), conclusion_ids)
+        imp = fca.Implication(ids_pos, ids_neg)
+            
+        ibun = bunny.bunny.InfBunny.find(imp, wait_time=75, kern_size=2)[0]
+        assert ibun != None
+        assert not all(ibun.check_id(id_, 10) for id_ in ids_neg)
+        assert all(ibun.check_id(id_, 10) for id_ in ids_pos)
         
 ###############################################################################
     @nottest    

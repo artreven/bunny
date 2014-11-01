@@ -9,6 +9,7 @@ Created on Apr 28, 2013
 import re
 import time
 import itertools
+import sympy
 from collections import OrderedDict
 from copy import deepcopy
 
@@ -85,7 +86,7 @@ class Bunny(object):
         if not isinstance(self.size, int):
             raise Exception('Size not int')
         size = self.size
-        s = '\tBUNNY No {0}'.format(self.index) + '\n'
+        s = '\tBUNNY No {0}, size = {1}'.format(self.index, self.size) + '\n'
         s += ('f2\t' + '\t'.join(map(str, range(size))) +
              '\t\tf1' + '\t\t\tf0' + '\n')
         for i in range(size):
@@ -97,8 +98,13 @@ class Bunny(object):
             s += '\n'
         return s
     
+    def __repr__(self):
+        s = 'show(index={}, size={})'.format(self.index, self.size)
+        return s
+    
     def __eq__(self, other):
-        return ((self.size == other.size) and
+        return ((type(self) == type(other)) and
+                (self.size == other.size) and
                 (self.funcs['f2'].dict == other.funcs['f2'].dict) and
                 (self.funcs['f1'].dict == other.funcs['f1'].dict) and
                 (self.funcs['f0'] == other.funcs['f0']))
@@ -120,7 +126,7 @@ class Bunny(object):
         assert limit != None and limit != float('inf')
         
         current_vars = id_.var_symbols
-        evaluations = itertools.product(xrange(limit-1, -1, -1),
+        evaluations = itertools.product(xrange(limit),
                                         repeat=len(current_vars))
         for evaluation in evaluations:
             dict_subs = dict(zip(current_vars, evaluation))
@@ -182,7 +188,7 @@ def _index(f2_dict, f1_dict, f0_dict, size):
     v2 = 0
     for i in range(size):
         for j in range(size):
-            v2 += f2_dict[(i, j)] * size**(j + size*i)
+            v2 += f2_dict[(j, i)] * size**(i + size*j)
     #calc v1
     v1 = 0
     for i in range(size):
@@ -205,6 +211,7 @@ def _dict2f(dict_f, f_name):
     f.dict = dict_f
     return f
 
+vary_syms = ['n', 'm'] # symbols that may vary. For piecewise functions.
 ################################INFINITE BUNNIES        
 class InfBunny(Bunny):
     '''
@@ -230,8 +237,74 @@ class InfBunny(Bunny):
               'f0:\n\t{}\n'.format(self.funcs['f0']))
         return s
     
+    def __repr__(self):
+        s = 'InfBunny({}, {}, {})'.format(*map(repr, [self.funcs['f2'],
+                                                      self.funcs['f1'], 
+                                                      self.funcs['f0']]))
+        return s
+    
     def __eq__(self, other):
         raise Exception, 'Equality not yet defined for infinite bunnies.'
+    
+    @classmethod
+    def read(cls, bunny_str):
+        '''
+        Read infinite bunny from string.
+        '''
+        def get_graph(func_name, start_index):
+            f_graph = []
+            else_val = None
+            for f_line in bunny_str_ls[start_index+1:]:
+                is_else_val = False
+                start_input = f_line.find(func_name + '(')
+                end_input = f_line.find(')')
+                if start_input == -1:
+                    break
+                input_str = f_line[start_input+3:end_input].split(',')
+                input = []
+                for i in input_str:
+                    i = i.strip()
+                    if i.isdigit():
+                        input.append( Value(int(i)) )
+                    elif 'n' in i or 'm' in i:
+                        input.append( Value(i) )
+                    elif i == 'else':
+                        is_else_val = True
+                    elif i == '':
+                        continue
+                    else:
+                        assert 0
+                start_output = f_line.find(':=')
+                output_str = f_line[start_output+2:].strip()
+                if output_str.isdigit():
+                    output = Value(int(output_str))
+                elif 'n' in output_str:
+                    output = Value(output_str)
+                if is_else_val:
+                    else_val = output
+                else:
+                    f_graph.append( tuple(input + [output]) )
+            return f_graph, else_val
+            
+        bunny_str_ls = bunny_str.split('\n')
+        for i in xrange(len(bunny_str_ls)):
+            if bunny_str_ls[i] == 'f2:':
+                f2_i = i
+            elif bunny_str_ls[i] == 'f1:':
+                f1_i = i
+            elif bunny_str_ls[i] == 'f0:':
+                f0_i = i
+        f2_graph, else_val = get_graph('f2', f2_i)
+        f2 = PiecewiseFunc('f2', f2_graph)
+        if else_val != None:
+            f2.else_val = else_val
+        f1_graph, else_val = get_graph('f1', f1_i)
+        f1 = PiecewiseFunc('f1', f1_graph)
+        if else_val != None:
+            f1.else_val = else_val
+        f0 = Value( int(bunny_str_ls[f0_i+1].strip()) )
+        bun = InfBunny(f2, f1, f0)
+        return bun
     
     @classmethod
     def find(cls, imp, wait_time, kern_size):
@@ -240,7 +313,7 @@ class InfBunny(Bunny):
         '''
         print 'Starting on implication: {}'.format(imp)
         try: 
-            bun = next(_inf_bunnies(imp, wait_time, kern_size))
+            bun = _inf_bunnies(imp, wait_time, kern_size)
             print 'Infinite bunny found', bun, '\n'
             return (bun, 'Success')
         except StopIteration:
@@ -261,14 +334,14 @@ class PiecewiseFunc(object):
     Class for piecewise-defined functions
     '''
     
-    def __init__(self, f_name, graph, size=None):
+    def __init__(self, f_name, graph, size=None, else_val=None):
         '''
         Constructor.
         *graph* - list representing graph of the function - (*input, output).
         '''
         self.graph = graph
         self.name = f_name
-        self.else_val = None
+        self.else_val = else_val
         self.size = size
         
     def __call__(self, *args):
@@ -278,31 +351,56 @@ class PiecewiseFunc(object):
                 arg = Value(arg)
             var_args.append(arg)
         args = tuple(var_args)
-        if self.size == None or not any(args[i] > self.size for i in xrange(len(args))):
-            for t in self.graph:
-                if args == t[:-1]:
-                    return t[-1]
-        for t in sorted(self.graph, key=str):
-            if not 'n' in reduce(lambda x,y: x+y, map(str, t), ''):
-                continue
-            n = None
-            for i in xrange(len(args)):
-                if (isinstance(t[i].value, str) and args[i].value != None):
-                    new_n = args[i] - int(t[i].value[-2:])
-                    if self.size != None and new_n.value < self.size:
-                        break
-                    if not isinstance(n, Variable):
-                        n = new_n
-                    elif new_n != n:
-                        break
-                else:
-                    if t[i] != args[i]:
-                        break
-            else:
-                if isinstance(t[-1], Variable) and t[-1].value == None:
-                    return t[-1]
-                else:
-                    return eval(str(t[-1]))
+        # if in kern or no size
+#         if self.size == None or not any(args[i] > self.size for i in xrange(len(args))):
+        for t in self.graph:
+            if args == t[:-1]:
+                return t[-1]
+        # if not in kern or no size
+        if self.size == None or any(args[i] > self.size for i in xrange(len(args))):
+            for t in sorted(self.graph, key=str):
+                t_str = reduce(lambda x,y: x+y, map(str, t), '')
+                if not any(c in t_str for c in vary_syms):
+                    continue
+                if any(t[i] != args[i] for i in range(len(args)) if t[i].value == None):
+                    continue
+                
+                eq_system = []
+                gotonextt = False
+                for i in range(len(args)):
+                    lhs = t[i].value
+                    rhs = args[i].value
+                    if lhs == None or rhs == None:
+                        if t[i] != args[i]: # compare Variables, not their values
+                            gotonextt = True
+                            break
+                        else:
+                            continue
+                    if (isinstance(lhs, int) and
+                        ((isinstance(rhs, str) and 
+                          any(c in rhs for c in ['n', 'm'])) or
+                         rhs != lhs)):
+                            gotonextt = True
+                            break
+                    elif isinstance(lhs, int) and lhs == rhs:
+                        continue
+                    if isinstance(rhs, str):
+                        rhs = rhs.replace('n', 'n1').replace('m', 'm1')
+                    equ = sympy.Eq( sympy.sympify(lhs), sympy.sympify(rhs) )
+                    eq_system.append(equ)
+                if gotonextt: continue
+                solution = sympy.solve(eq_system, ['n', 'm'])
+                if not eq_system or (solution and
+                                     not any(x in map(str, solution.keys())
+                                             for x in ['n1', 'm1'])):
+                    if isinstance(t[-1], Variable) and t[-1].value == None:
+                        return t[-1]
+                    else:
+                        ans = sympy.sympify(str(t[-1])).subs(solution)
+                        ans = str(ans).replace('n1', 'n').replace('m1', 'm')
+                        try: ans = int(ans)
+                        except: pass
+                        return Value(ans)
         if self.else_val != None:
             return self.else_val
         raise ArgError(args, self.name)
@@ -324,6 +422,22 @@ class PiecewiseFunc(object):
         out_str += ''.join(sorted(entries))
         if self.else_val != None:
             out_str += '\t' + self.name + '(else):= ' + str(self.else_val) + '\n'
+        return out_str
+    
+    def __repr__(self):
+        s = '('
+        for t in self.graph:
+            s += '('
+            for v in t:
+                if v.isunset():
+                    s += 'Variable(), '
+                elif v.isint():
+                    s += 'Value({}), '.format(v.value)
+                elif v.isvary():
+                    s += 'Value("{}"), '.format(v.value)
+            s += '), ' 
+        s += ')'
+        out_str = 'PiecewiseFunc(f_name="{}", graph={}, size={}, else_val={})'.format(self.name, s, self.size, self.else_val)
         return out_str
     
     def __eq__(self, other):
@@ -356,11 +470,14 @@ class Variable(object):
         '''
         if not (new_value == None or 
                 isinstance(new_value, int) or 
-                (isinstance(new_value, str) and new_value[0] == 'n')):
+                (isinstance(new_value, str) and
+                 any(c in new_value for c in vary_syms))):
             raise Exception, ("New value {} has to be".format(new_value) +
-                              " either None or int or str starting with 'n'")
-        if new_value == 'n':
-            new_value = 'n+0'
+                              " either None or int or str with 'n' or 'm'")
+        if isinstance(new_value, str) and ' ' in new_value:
+            new_value = new_value.replace(' ', '')
+        if isinstance(new_value, str) and not new_value[-1].isdigit():
+            new_value += '+0'
         self._values_dict[self.id] = new_value
         
     def identify(self, other):
@@ -404,25 +521,32 @@ class Variable(object):
             return str(val)
         
     def __add__(self, other):
-        if isinstance(other, int):
-            if isinstance(self.value, int):
-                new_value = self.value + other
-            elif isinstance(self.value, str):
-                new_value = 'n{:+}'.format(int(self.value[-2:]) + other)
-            return Value(new_value)
-        elif isinstance(other, Variable) and isinstance(other.value, int):
-            return self + other.value
-    
+        if isinstance(other, Variable):
+            ans = sympy.sympify(self.value) + sympy.sympify(other.value)
+        else:
+            ans = sympy.sympify(self.value) + other
+        ans = str(ans)
+        try:
+            ans = int(ans)
+        except:
+            pass
+        return Value(ans)
+     
     def __sub__(self, other):
         if isinstance(other, Variable):
-            if isinstance(other.value, str):
-                if not isinstance(self.value, str):
-                    raise Exception, 'Trying to subtract {} from {}'.format(other, self)
-                return Value( int(self.value[-2:]) - int(other.value[-2:]) )
-            elif isinstance(other.value, int):
-                return self - other.value
+            return self.__add__(-sympy.sympify(other.value))
         else:
             return self.__add__(-other)
+        
+    def isvary(self):
+        return isinstance(self.value, str) and any(c in self.value
+                                                   for c in ['n', 'm'])
+    
+    def isint(self):
+        return isinstance(self.value, int)
+
+    def isunset(self):
+        return self.value == None
         
     @classmethod
     def clsreset(cls):
@@ -441,11 +565,14 @@ def identify_variables(var1, var2):
 class Value(Variable):
     def __init__(self, arg):
         if not (isinstance(arg, int) or 
-                (isinstance(arg, str) and arg[0] == 'n')):
+                (isinstance(arg, str) and
+                 any(c in arg for c in vary_syms))):
             raise Exception, ("New value {} has to be".format(arg) +
-                              " either int or str starting with 'n'")
-        if arg == 'n':
-            arg = 'n+0'
+                              " either int or str with 'n' or 'm'")
+        if isinstance(arg, str) and ' ' in arg:
+            arg = arg.replace(' ', '')
+        if isinstance(arg, str) and not arg[-1].isdigit():
+            arg += '+0'
         self._value = arg
         
     def identify(self, other):
@@ -466,12 +593,24 @@ def _inf_bunnies(imp, wait_time, kern_size):
     Alternative version, uses bindings obtained from id_pos_ls and kind of
     backtracking.
     '''
-    for bun in construct(imp, wait_time, kern_size):
+    bun = construct(imp, wait_time, kern_size)
+    try:
         assert any(not bun.check_id(id_, kern_size+4) for id_ in imp.conclusion)
         assert all(bun.check_id(id_, kern_size+4) for id_ in imp.premise)
-        yield bun
+    except AssertionError:
+        print [(str(id_), bun.check_id(id_, kern_size+4, v=True)) for id_ in imp.conclusion]
+        print [(str(id_), bun.check_id(id_, kern_size+4, v=True)) for id_ in imp.premise]
+        print bun
+        raise Exception
+    return bun
             
 #######################################################################
+def powerset(iterable):
+    "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
+    s = list(iterable)
+    return itertools.chain.from_iterable(itertools.combinations(s, r)
+                                         for r in range(len(s)+1))
+
 def check_consistency(bun, llimit=3, ulimit=7):
     '''
     Check consistency of function in bunny: for every input there should be not
@@ -495,18 +634,30 @@ def check_consistency(bun, llimit=3, ulimit=7):
                 if not ('n' in row_str or 'Variable' in row_str):
                     return False
         # check that if the input varies and several outputs possible, all the outputs are equal    
-        n_rows = [row for row in f.graph if 'n' in ''.join(map(str, row[:-1]))]
+        var_syms = ['n', 'm']        
+        n_rows = [row for row in f.graph if any(x in ''.join(map(str, row[:-1]))
+                                                for x in var_syms)]
         for n_row in n_rows:
             f_row = PiecewiseFunc('', [n_row])
-            for n in range(llimit, ulimit):
-                input = tuple(map(eval, map(str, n_row[:-1])))
+            f_row.size = f.size
+            
+            local_vars = set([c for c in ''.join(map(str, n_row)) if c in var_syms])
+            evaluations = itertools.product( *[range(ulimit)]*len(local_vars) )
+            str_n_row = map(str, n_row[:-1])
+            for evaluation in evaluations:
+                subs = zip(local_vars, evaluation)
+                input = tuple(map(lambda x: eval(x, globals(), dict(subs)),
+                                  str_n_row))
                 if all(x <= f.size for x in input):
                     continue
-                orig = f(*input)
-                new = f_row(*input)
+                try:
+                    orig = f(*input)
+                    new = f_row(*input)
+                except ArgError:
+                    continue
                 if (orig != new and 
                     (type(orig) != Variable or orig.value != None) and 
-                    (type(new) != Variable or new.value != None)): 
+                    (type(new) != Variable or new.value != None)):
                         return False
         # check that there are bindings beyond kern_size, they comply with varying case        
         for t in f.graph:
@@ -516,59 +667,85 @@ def check_consistency(bun, llimit=3, ulimit=7):
                 except ArgError:
                     pass
                 else:
-                    if t[-1] != f_out and (type(f_out) != Variable or f_out.value != None):
+                    if t[-1] != f_out and (type(f_out) != Variable or
+                                           f_out.value != None):
                         return False
         return True
         
     return check_f(bun.funcs['f1']) and check_f(bun.funcs['f2'])
-
-def fetch_next(bun, undef_vars, def_vars, get_next_assignment):
-    vars_number = len(undef_vars) + len(def_vars)
-    while True:
-        try:
-            var = undef_vars.pop()
-        except IndexError:
-            var = def_vars.pop()
-        consistent = None
-        while consistent != True:
+                
+def violates_ids(bun, ids):
+    bun_copy = deepcopy(bun)
+    kern_size = bun.funcs['f2'].size + 1
+    bun.funcs['f2'].size = None
+    bun.funcs['f1'].size = None
+    it_dict = OrderedDict()
+    if not ids:
+        if bun.funcs['f2'].else_val == None:
+            bun.funcs['f2'].else_val = 0
+        if bun.funcs['f1'].else_val == None:
+            bun.funcs['f1'].else_val = 0
+#         bun.funcs['f1'].size = bun.funcs['f2'].size = None
+        return True
+    for idn in ids:
+        while True:
             try:
-                var.value = get_next_assignment(var)
-                consistent = check_consistency(bun,
-                                               llimit=bun.funcs['f1'].size,
-                                               ulimit=bun.funcs['f1'].size+4)
-            except StopIteration:
-                var.value = None
-                undef_vars.append(var)
-                try:
-                    var = def_vars.pop()
-                except IndexError:
-                    raise StopIteration
-        else:
-            def_vars.append(var)
-            assert len(undef_vars) + len(def_vars) == vars_number
-            if not undef_vars:
-                break
+                sat = bun.check_id(idn, kern_size+4)
+            except ArgError as e:
+                if not e.f_name in it_dict:
+                    it_dict[e.f_name] = iter(xrange(kern_size+2))
+                bun.funcs[e.f_name].else_val = next(it_dict[e.f_name])
+            else:
+                if sat == False:
+                    if bun.funcs['f2'].else_val == None:
+                        bun.funcs['f2'].else_val = 0
+                    if bun.funcs['f1'].else_val == None:
+                        bun.funcs['f1'].else_val = 0
+#                     bun.funcs['f1'].size = bun.funcs['f2'].size = None
+                    return True
+                else:
+                    while it_dict:
+                        f_name, else_it = it_dict.popitem()
+                        try:
+                            bun.funcs[f_name].else_val = next(else_it)
+                            it_dict[f_name] = else_it
+                            break
+                        except StopIteration:
+                            bun.funcs[f_name].else_val = None
+                    else:
+                        break
+    bun = deepcopy(bun_copy)
+    bun.funcs['f2'].size = kern_size - 1
+    bun.funcs['f1'].size = kern_size - 1
+    return False
 
-def impose_bindings(bun, id_, domain, var_deps):
+def impose_bindings(bun, id_, domain_dict, var_deps):
     """
-    Put constraints that arise from identities into bunny (bindings).
-    We check and find constraints for points in *domain*.
-    *var_deps* represents the dependencies on the variables. keys are id 
-    numbers of variables.
+    Reveal constraints that arise from identities, put them into into bunny.
+    We check and find constraints for points defined by *domain_dict*.
+    *var_deps* represents the dependencies on the variables - keys are
+    identification numbers of variables.
     """
-    evaluations = itertools.product(domain, repeat=len(id_.var_symbols))
-    for evaluation in evaluations:
+    evaluations = itertools.product( *[domain_dict[v] for v in id_.var_symbols] )
+    for evaluation in evaluations:    
         point_dict = dict( zip(id_.var_symbols, evaluation) )
         while True:
             try:
                 lhs = id_.left_term(bun, point_dict)
                 rhs = id_.right_term(bun, point_dict)
+                ###
+                # here raise an error if there is no exact match for varying symbols
+                # add a special value for each varying symbol. 
+                print point_dict, lhs, rhs
+                ###
                 if not rhs == lhs:
                     identify_variables(lhs, rhs)
                     ### Not sure if consistency check is needed here
                     consistent = check_consistency(bun)
                     if not consistent:
                         print 'raised from consistency check while imposing bindings'
+#                         print point_dict, id_
+#                         print bun
                         raise InconsistentBindingError
                     ###
                 break
@@ -576,32 +753,6 @@ def impose_bindings(bun, id_, domain, var_deps):
                 new_v = Variable()
                 var_deps[new_v.id] = e.vals
                 bun.funcs[e.f_name].add_value(e.vals, new_v)
-
-def falsify_id(bun, id_c, get_next_assignment, var_deps):
-    undef_vars_conc = []; def_vars_conc = []
-    kern_size = bun.funcs['f1'].size + 1
-    while True:
-        bun.funcs['f1'].size = None
-        bun.funcs['f2'].size = None
-        try:
-            sat = bun.check_id(id_c, kern_size+4)
-        except ArgError as e:
-            new_v = Variable()
-            bun.funcs[e.f_name].add_value(e.vals, new_v)
-            undef_vars_conc.append(new_v)
-            var_deps[new_v.id] = e.vals
-        else:
-            if sat == False:
-                break
-        bun.funcs['f2'].size = kern_size-1
-        bun.funcs['f1'].size = kern_size-1
-        if undef_vars_conc or def_vars_conc:
-            try:
-                fetch_next(bun, undef_vars_conc, def_vars_conc, get_next_assignment)
-            except StopIteration:
-                break
-        else:
-            break
             
 def construct(imp, wait_time, kern_size=3):
     """
@@ -610,50 +761,84 @@ def construct(imp, wait_time, kern_size=3):
     @param kern_size: size of kernel of algebra, which is essentially the
     counter-example. 
     """
-    def get_next_assignment(var):
+    def fetch_next(bun, undef_vars, def_vars, get_domain):
+        vars_number = len(undef_vars) + len(def_vars)
+        if vars_number == 0:
+            if check_consistency(bun,
+                                 ulimit=bun.funcs['f1'].size+4):
+                return
+            else:
+                raise StopIteration
+        while True:
+            # Check time constraint
+            if time.time()-ts >= wait_time:
+                raise TimeoutError
+            try:
+                var = undef_vars.pop()
+            except IndexError:
+                var = def_vars.pop()
+            consistent = None
+            while consistent != True:
+                try:
+                    domain_it = domain_its[var.id]
+                except KeyError:
+                    domain_it = get_domain(var)
+                    domain_its[var.id] = domain_it
+                try:
+                    var.value = next(domain_it)
+                    consistent = check_consistency(bun, kern_size + 4)
+                except StopIteration:
+                    var.value = None
+                    del domain_its[var.id]
+                    undef_vars.append(var)
+                    try:
+                        var = def_vars.pop()
+                    except IndexError:
+                        raise StopIteration
+            else:
+                def_vars.append(var)
+                assert len(undef_vars) + len(def_vars) == vars_number
+                if not undef_vars:
+                    break
+    
+    def get_domain(var):
         assert isinstance(var, Variable)
         dep_vars = var_deps[var.id]
-        n_vars = list(filter(lambda x: 'n' in str(x), dep_vars))
-        n_vars.sort(key=lambda x: int(str(x.value[-2:])))
-        if var.value == None:
-            return 0
-        elif isinstance(var.value, int) and var.value < kern_size+1:
-            return var.value + 1
-        elif isinstance(var.value, int) and n_vars:
-            return (n_vars[0] - 2).value
-        elif isinstance(var.value, str) and int(var.value[-2:]) < int((n_vars[-1]+2).value[-2:]):
-            return (var + 1).value
-        elif not n_vars or int(var.value[-2:]) >= int((n_vars[-1]+2).value[-2:]):
-            raise StopIteration
+        ans = range(kern_size + 1)
+        var_syms = {c for c in ['n', 'm'] if c in ''.join(map(str, dep_vars))}
+        if 'n' in var_syms:
+            ans += ['n{:+}'.format(i) for i in range(-2, 3)]
+            if 'm' in var_syms:
+                ans += ['m+n{:+}'.format(i) for i in range(-2, 3)]
+        if 'm' in var_syms:
+            ans += ['m{:+}'.format(i) for i in range(-2, 3)]
+        return iter(ans)
     
     Variable.clsreset()
     bun = InfBunny(PiecewiseFunc('f2', [], size=kern_size-1),
                    PiecewiseFunc('f1', [], size=kern_size-1),
                    Value(0))
     var_deps = dict()
+    domain_dict = {'x': range(kern_size) + ["'n+0'"],
+                   'y': range(kern_size) + ["'m+0'"],
+                   'z': range(kern_size) + ["'h+0'"]}
     for id_ in imp.premise:
-        impose_bindings(bun, id_, range(kern_size) + ["'n+0'"], var_deps)
-    vars_its = dict(); def_vars = []; undef_vars = []
+        impose_bindings(bun, id_, domain_dict, var_deps)
+    def_vars = []; undef_vars = []
     for var in Variable._registry:
         if var.value == None and not var in undef_vars:
             undef_vars.insert(0, var)
-    
-    id_c = list(imp.conclusion)[0]
+        
+    print bun
+    domain_its = OrderedDict()
     ts = time.time()
     while True:
         # Check time constraint
         if time.time()-ts >= wait_time:
             raise TimeoutError
-        fetch_next(bun, undef_vars, def_vars, get_next_assignment)
-        try:
-            sat = bun.check_id(id_c, kern_size+4)
-        except ArgError:
-            falsify_id(bun, id_c, get_next_assignment, var_deps)
-            sat = bun.check_id(id_c, kern_size+4)
-        if sat == False:
-            bun.funcs['f2'].else_val = 0
-            bun.funcs['f1'].else_val = 0
-            yield bun
+        fetch_next(bun, undef_vars, def_vars, get_domain)
+        if violates_ids(bun, imp.conclusion):
+            return bun
 
 
 ######################IF MAIN ROUTINE##################################
@@ -662,47 +847,65 @@ if __name__ == '__main__':
     import fca
     import cProfile
     
-    ##############################################################
-    
-    id20 = identity.Identity.make_identity('a=-(-(-a))')
-    id22 = identity.Identity.make_identity('a=a*(-a)')
-    id24 = identity.Identity.make_identity('a=(-a)*a')
-    id32 = identity.Identity.make_identity('a=-(a*a)')
-    id45 = identity.Identity.make_identity('x=a*(-x)')
-    id50 = identity.Identity.make_identity('x=(-a)*x')
-    
-    id55 = identity.Identity.make_identity('x=-(a*x)')
-    
-#     ids_pos = {id22, id24, id32, id45, id50}
-    ids_pos = {id20, id22, id24, id32, id45, id50}
-    
-    imp = fca.Implication(ids_pos, {id55})
-    command_str = 'ibun = InfBunny.find(imp, wait_time=200, kern_size=3)[0]'
-    cProfile.run(command_str)
-    print id55, ibun.check_id(id55, 7, v=True) 
+    imp_str = 'x = f2(f1(x),f0), f0 = f2(f1(f0),f0), f0 = f2(f0,f1(x)), x = x, f0 = f2(x,f1(f0)), f0 = f2(x,f1(x)), f0 = f2(f0,f1(f0)), f0 = f2(x,f1(y)) => f0 = f2(f1(x),x), f0 = f2(f1(f0),x)'
+    #imp_str = 'f0 = f1(f2(f0,f0)), x = x, f1(f0) = f1(f1(f0)), x = f1(f2(x,x)), f0 = f2(f0,f1(f0)), f0 = f2(x,f1(x)) => f0 = f2(f1(f0),f0)'
+    premise, conclusion = imp_str.split('=>')
+    premise_ids = map(lambda x: x.strip(), premise.split(', '))
+    conclusion_ids = map(lambda x: x.strip(), conclusion.split(', '))
+    ids_pos = map(lambda x: identity.Identity.func_str2id(x), premise_ids)
+    ids_neg = map(lambda x: identity.Identity.func_str2id(x), conclusion_ids)
+    imp = fca.Implication(ids_pos, ids_neg)
+         
+    ibun = InfBunny.find(imp, wait_time=75, kern_size=3)[0]
+    print [(str(id_), ibun.check_id(id_, 10, v=True)) for id_ in ids_neg]
     print [(str(id_), ibun.check_id(id_, 10, v=True)) for id_ in ids_pos]
-    assert not ibun.check_id(id55, 10)
+    assert not all(ibun.check_id(id_, 10) for id_ in ids_neg)
     assert all(ibun.check_id(id_, 10) for id_ in ids_pos)
     
+    "('f0 = f2(x,f1(y))', (False, {'y': 3, 'x': 4}, 0, 1)"
+    
     ##############################################################
     
-    id6 = identity.Identity.make_identity('a=-(-a)')
-    id22 = identity.Identity.make_identity('a=a*(-a)')
-    id26 = identity.Identity.make_identity('a=x*(-a)')
-    id32 = identity.Identity.make_identity('a=-(a*a)')
-    id34 = identity.Identity.make_identity('a=-(x*a)')
-    id39 = identity.Identity.make_identity('-a=a*a')
-    id47 = identity.Identity.make_identity('x=x*(-x)')
-    id55 = identity.Identity.make_identity('x=-(a*x)')
-    id65 = identity.Identity.make_identity('-x=x*x')
-    
-    id41 = identity.Identity.make_identity('-a=x*a')
-    
-    id_pos_ls = [id6, id22, id26, id32, id34, id39, id47, id55, id65]
-    imp = fca.Implication(id_pos_ls, {id41})        
-    command_str = 'ibun = InfBunny.find(imp, wait_time=30000, kern_size=3)[0]'
-    cProfile.run(command_str)
-    print id41, ibun.check_id(id41, 7, v=True) 
-    print [(str(id_), ibun.check_id(id_, 10, v=True)) for id_ in id_pos_ls]
-    assert not ibun.check_id(id41, 10)
-    assert all(ibun.check_id(id_, 10) for id_ in id_pos_ls)
+#     id20 = identity.Identity.make_identity('a=-(-(-a))')
+#     id22 = identity.Identity.make_identity('a=a*(-a)')
+#     id24 = identity.Identity.make_identity('a=(-a)*a')
+#     id32 = identity.Identity.make_identity('a=-(a*a)')
+#     id45 = identity.Identity.make_identity('x=a*(-x)')
+#     id50 = identity.Identity.make_identity('x=(-a)*x')
+#     
+#     id55 = identity.Identity.make_identity('x=-(a*x)')
+#     
+#     ids_pos = {id20, id22, id24, id32, id45, id50}
+#     
+#     imp = fca.Implication(ids_pos, {id55})
+#     command_str = 'ibun = InfBunny.find(imp, wait_time=200, kern_size=3)[0]'
+#     cProfile.run(command_str)
+#     print repr(ibun)
+#     ibun = eval( repr(ibun) )
+#     print id55, ibun.check_id(id55, 7, v=True) 
+#     print [(str(id_), ibun.check_id(id_, 10, v=True)) for id_ in ids_pos]
+#     assert not ibun.check_id(id55, 10)
+#     assert all(ibun.check_id(id_, 10) for id_ in ids_pos)
+#     
+#     ##############################################################
+#     
+#     id6 = identity.Identity.make_identity('a=-(-a)')
+#     id22 = identity.Identity.make_identity('a=a*(-a)')
+#     id26 = identity.Identity.make_identity('a=x*(-a)')
+#     id32 = identity.Identity.make_identity('a=-(a*a)')
+#     id34 = identity.Identity.make_identity('a=-(x*a)')
+#     id39 = identity.Identity.make_identity('-a=a*a')
+#     id47 = identity.Identity.make_identity('x=x*(-x)')
+#     id55 = identity.Identity.make_identity('x=-(a*x)')
+#     id65 = identity.Identity.make_identity('-x=x*x')
+#     
+#     id41 = identity.Identity.make_identity('-a=x*a')
+#     
+#     id_pos_ls = [id6, id22, id26, id32, id34, id39, id47, id55, id65]
+#     imp = fca.Implication(id_pos_ls, {id41})        
+#     command_str = 'ibun = InfBunny.find(imp, wait_time=30000, kern_size=3)[0]'
+#     cProfile.run(command_str)
+#     print id41, ibun.check_id(id41, 7, v=True) 
+#     print [(str(id_), ibun.check_id(id_, 10, v=True)) for id_ in id_pos_ls]
+#     assert not ibun.check_id(id41, 10)
+#     assert all(ibun.check_id(id_, 10) for id_ in id_pos_ls)
