@@ -11,7 +11,7 @@ from string import maketrans
 import re
 import compiler
 
-import fca
+# import fca
 
 
 ######EXCEPTIONS###################################

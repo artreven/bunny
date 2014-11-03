@@ -352,17 +352,19 @@ class PiecewiseFunc(object):
             var_args.append(arg)
         args = tuple(var_args)
         # if in kern or no size
-#         if self.size == None or not any(args[i] > self.size for i in xrange(len(args))):
         for t in self.graph:
             if args == t[:-1]:
                 return t[-1]
         # if not in kern or no size
-        if self.size == None or any(args[i] > self.size for i in xrange(len(args))):
-            for t in sorted(self.graph, key=str):
+        if True:#self.size == None or any(args[i] > self.size for i in xrange(len(args))):
+            for t in sorted(self.graph, key=lambda x: len({v for v in ['n', 'm']
+                                                           if v in ''.join(map(str, x)) })):
                 t_str = reduce(lambda x,y: x+y, map(str, t), '')
                 if not any(c in t_str for c in vary_syms):
                     continue
                 if any(t[i] != args[i] for i in range(len(args)) if t[i].value == None):
+                    continue
+                if any(v.isunset() for v in t): # this is experimental in order to avoid identifying n and m while imposing bindings
                     continue
                 
                 eq_system = []
@@ -371,17 +373,19 @@ class PiecewiseFunc(object):
                     lhs = t[i].value
                     rhs = args[i].value
                     if lhs == None or rhs == None:
-                        if t[i] != args[i]: # compare Variables, not their values
+                        if t[i] != args[i]:
                             gotonextt = True
                             break
                         else:
                             continue
                     if (isinstance(lhs, int) and
-                        ((isinstance(rhs, str) and 
-                          any(c in rhs for c in ['n', 'm'])) or
-                         rhs != lhs)):
+                        (isinstance(rhs, str) or rhs != lhs)):
                             gotonextt = True
                             break
+                    elif (isinstance(rhs, int) and isinstance(lhs, str) and
+                          (self.size == None or (rhs - int(lhs[-2:])) <= self.size)):
+                              gotonextt = True
+                              break
                     elif isinstance(lhs, int) and lhs == rhs:
                         continue
                     if isinstance(rhs, str):
@@ -617,25 +621,29 @@ def check_consistency(bun, llimit=3, ulimit=7):
     more than one result.
     '''
     def check_f(f):
+        f_graph = []
+        for x in f.graph:
+            if not x in f_graph:
+                f_graph.append(x)
         # Check for simple duplicates
-        inputs = [x[:-1] for x in f.graph]
+        inputs = [x[:-1] for x in f_graph]
         duplicates = set([tuple(map(str, input)) for input in inputs if inputs.count(input) > 1])
         if duplicates:
             for x in duplicates:
-                results = [str(z[-1]) for z in f.graph
+                results = [str(z[-1]) for z in f_graph
                            if tuple(map(str, z[:-1])) == x
                            if z[-1].value != None] 
                 if len(set(results + [None])) > 2:
                     return False
         # check that the output varies only if the input varies
-        for row in f.graph:
+        for row in f_graph:
             if 'n' in str(row[-1]):
                 row_str = ''.join( map(str, row[:-1]) )
                 if not ('n' in row_str or 'Variable' in row_str):
                     return False
         # check that if the input varies and several outputs possible, all the outputs are equal    
         var_syms = ['n', 'm']        
-        n_rows = [row for row in f.graph if any(x in ''.join(map(str, row[:-1]))
+        n_rows = [row for row in f_graph if any(x in ''.join(map(str, row[:-1]))
                                                 for x in var_syms)]
         for n_row in n_rows:
             f_row = PiecewiseFunc('', [n_row])
@@ -648,8 +656,8 @@ def check_consistency(bun, llimit=3, ulimit=7):
                 subs = zip(local_vars, evaluation)
                 input = tuple(map(lambda x: eval(x, globals(), dict(subs)),
                                   str_n_row))
-                if all(x <= f.size for x in input):
-                    continue
+#                 if all(x <= f.size for x in input):
+#                     continue
                 try:
                     orig = f(*input)
                     new = f_row(*input)
@@ -660,7 +668,7 @@ def check_consistency(bun, llimit=3, ulimit=7):
                     (type(new) != Variable or new.value != None)):
                         return False
         # check that there are bindings beyond kern_size, they comply with varying case        
-        for t in f.graph:
+        for t in f_graph:
             if any(x > f.size for x in t[:-1]):
                 try:
                     f_out = f(*t[:-1])
@@ -671,21 +679,18 @@ def check_consistency(bun, llimit=3, ulimit=7):
                                            f_out.value != None):
                         return False
         return True
-        
+    
     return check_f(bun.funcs['f1']) and check_f(bun.funcs['f2'])
                 
 def violates_ids(bun, ids):
     bun_copy = deepcopy(bun)
     kern_size = bun.funcs['f2'].size + 1
-    bun.funcs['f2'].size = None
-    bun.funcs['f1'].size = None
     it_dict = OrderedDict()
     if not ids:
         if bun.funcs['f2'].else_val == None:
             bun.funcs['f2'].else_val = 0
         if bun.funcs['f1'].else_val == None:
             bun.funcs['f1'].else_val = 0
-#         bun.funcs['f1'].size = bun.funcs['f2'].size = None
         return True
     for idn in ids:
         while True:
@@ -701,7 +706,6 @@ def violates_ids(bun, ids):
                         bun.funcs['f2'].else_val = 0
                     if bun.funcs['f1'].else_val == None:
                         bun.funcs['f1'].else_val = 0
-#                     bun.funcs['f1'].size = bun.funcs['f2'].size = None
                     return True
                 else:
                     while it_dict:
@@ -715,8 +719,6 @@ def violates_ids(bun, ids):
                     else:
                         break
     bun = deepcopy(bun_copy)
-    bun.funcs['f2'].size = kern_size - 1
-    bun.funcs['f1'].size = kern_size - 1
     return False
 
 def impose_bindings(bun, id_, domain_dict, var_deps):
@@ -733,19 +735,16 @@ def impose_bindings(bun, id_, domain_dict, var_deps):
             try:
                 lhs = id_.left_term(bun, point_dict)
                 rhs = id_.right_term(bun, point_dict)
-                ###
-                # here raise an error if there is no exact match for varying symbols
-                # add a special value for each varying symbol. 
-                print point_dict, lhs, rhs
-                ###
                 if not rhs == lhs:
+                    ###
+                    #print bun
+                    #print id_, point_dict, lhs, rhs
+                    ###
                     identify_variables(lhs, rhs)
                     ### Not sure if consistency check is needed here
                     consistent = check_consistency(bun)
                     if not consistent:
                         print 'raised from consistency check while imposing bindings'
-#                         print point_dict, id_
-#                         print bun
                         raise InconsistentBindingError
                     ###
                 break
@@ -804,7 +803,7 @@ def construct(imp, wait_time, kern_size=3):
     def get_domain(var):
         assert isinstance(var, Variable)
         dep_vars = var_deps[var.id]
-        ans = range(kern_size + 1)
+        ans = range(kern_size + 2)
         var_syms = {c for c in ['n', 'm'] if c in ''.join(map(str, dep_vars))}
         if 'n' in var_syms:
             ans += ['n{:+}'.format(i) for i in range(-2, 3)]
@@ -829,7 +828,6 @@ def construct(imp, wait_time, kern_size=3):
         if var.value == None and not var in undef_vars:
             undef_vars.insert(0, var)
         
-    print bun
     domain_its = OrderedDict()
     ts = time.time()
     while True:
@@ -847,22 +845,24 @@ if __name__ == '__main__':
     import fca
     import cProfile
     
-    imp_str = 'x = f2(f1(x),f0), f0 = f2(f1(f0),f0), f0 = f2(f0,f1(x)), x = x, f0 = f2(x,f1(f0)), f0 = f2(x,f1(x)), f0 = f2(f0,f1(f0)), f0 = f2(x,f1(y)) => f0 = f2(f1(x),x), f0 = f2(f1(f0),x)'
-    #imp_str = 'f0 = f1(f2(f0,f0)), x = x, f1(f0) = f1(f1(f0)), x = f1(f2(x,x)), f0 = f2(f0,f1(f0)), f0 = f2(x,f1(x)) => f0 = f2(f1(f0),f0)'
+    import p9m4
+    
+    imp_str = 'x = f2(f1(x),f0), f0 = f2(f1(f0),f0), f0 = f2(f1(f0),x), x = x, x = f2(f1(x),x), x = f2(f1(x),y), f0 = f2(f0,f1(f0)) => f0 = f2(f0,f0)'
+    imp_str = 'f0 = f2(f0,f0), x = f2(f1(x),f0), f0 = f2(f1(f0),f0), f0 = f2(f1(f0),x), x = x, x = f2(f1(x),x), x = f2(f1(x),y) => f0 = f2(f0,f1(f0))'
+    imp_str = 'x = x, f0 = f2(f1(x),y), f0 = f2(f1(x),x), f0 = f2(f1(f0),x), f0 = f2(f1(x),f0), x = f2(f0,f1(x)), f0 = f2(f0,f1(f0)), f0 = f2(f1(f0),f0) => f0 = f2(x,f1(x))'
+    imp_str = 'x = x, x = f1(f2(x,y)) => f0 = f1(f2(f0,f0)), x = f2(f1(x),f0), f0 = f2(f1(f0),f0), f0 = f2(f1(f0),x), x = f1(f2(x,f0)), x = f2(f1(x),x), x = f2(f1(x),y), f0 = f1(f2(f0,x)), x = f1(f2(x,x))'
     premise, conclusion = imp_str.split('=>')
     premise_ids = map(lambda x: x.strip(), premise.split(', '))
     conclusion_ids = map(lambda x: x.strip(), conclusion.split(', '))
     ids_pos = map(lambda x: identity.Identity.func_str2id(x), premise_ids)
     ids_neg = map(lambda x: identity.Identity.func_str2id(x), conclusion_ids)
     imp = fca.Implication(ids_pos, ids_neg)
-         
+    
     ibun = InfBunny.find(imp, wait_time=75, kern_size=3)[0]
     print [(str(id_), ibun.check_id(id_, 10, v=True)) for id_ in ids_neg]
     print [(str(id_), ibun.check_id(id_, 10, v=True)) for id_ in ids_pos]
     assert not all(ibun.check_id(id_, 10) for id_ in ids_neg)
     assert all(ibun.check_id(id_, 10) for id_ in ids_pos)
-    
-    "('f0 = f2(x,f1(y))', (False, {'y': 3, 'x': 4}, 0, 1)"
     
     ##############################################################
     

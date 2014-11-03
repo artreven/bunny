@@ -127,10 +127,10 @@ def read_model(path):
     # Reading multiplication table
     found = False
     for i in range(ModelStrInd+1, LengthFile):
-        if (FileText[i].find( r'function(*(_,_)' ) != -1):
+        if (FileText[i].find( r'(_,_)' ) != -1):
             found = True
             break
-    B = dict([(i, j), 0]
+    B = dict([(i, j), None]
              for i in range(Dom)
              for j in range(Dom))
     NumB = 0
@@ -142,35 +142,39 @@ def read_model(path):
         count = 0
         for i in wstr:
             if i.isdigit():
-                B[count/Dom, count%Dom] = int(i)
+                B[count%Dom, count/Dom] = int(i)
                 count += 1
         # Calculating Numj
         for i in range(Dom):
             for j in range(Dom):
                 NumB += B[i, j] * Dom**(i + j*Dom)
+    else:
+        B = dict([(i, j), 0] for i in range(Dom) for j in range(Dom))
     # Reading unary table
     found = False
     for i in range(ModelStrInd+1, LengthFile):
-        if (FileText[i].find( r'function(-(_)' ) != -1):
+        if (FileText[i].find( r'(_)' ) != -1):
             found = True
             break
-    U = dict([i, 0] for i in range(Dom))
+    U = dict([i, None] for i in range(Dom))
     NumU = 0
     if found:
         InvStrInd = i
         wstr = FileText[InvStrInd]
         count = 0
-        for i in wstr:
+        for i in wstr[wstr.find('['):]:
             if i.isdigit():
                 U[count] = int(i)
                 count += 1
         # Calculating NumU
         for i in range(Dom):
             NumU += U[i] * Dom**(i)
+    else:
+        U = dict([i, 0] for i in range(Dom))
     # Reading constant
     found = False
     for i in range(ModelStrInd+1, LengthFile):
-        if (FileText[i].find( r'function(a' ) != -1):
+        if (FileText[i].find( r'function(f0' ) != -1):
             found = True
             break
     NumN = N = 0
@@ -180,6 +184,7 @@ def read_model(path):
         for i in wstr:
             if i.isdigit():
                 NumN = N = int(i)
+                
     # prepare return and return
     index = NumB + NumU*(Dom ** (Dom**2)) + NumN*(Dom ** (Dom**2 + Dom))
     bun = bunny.Bunny.dicts2bunny(B, U, N, index)
@@ -199,4 +204,5 @@ def read_all_models(dest):
 
 ###############################################################################
 if __name__ == "__main__":
-    pass
+    dest = '../etc/test_run/ces.mace4.out'
+    print read_model(dest)

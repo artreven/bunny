@@ -3,16 +3,118 @@ Created on May 13, 2013
 
 @author: artem
 '''
-#import time
-#import cProfile
-#import os
-
 import fca
 
-import bunny_exploration.p9m4 as bep9m4
-import bunny_exploration.bunny as bebunny
-import bunny_exploration.identity as beidentity
-import auto_ae.ae
+import auto_ae.ae as ae
+
+from bunny import *
+import identity
+import p9m4
+
+#####################Some necessary definitions to start########################
+def read_ids(path):
+    """
+    Reads identities from given path. One identity per line.
+    """
+    id_ls = []
+    with open(path, 'r') as f_ids:
+        for line_id in f_ids:
+            new_id = identity.Identity.func_str2id(line_id)
+            id_ls.append(new_id)
+    return id_ls
+
+def init_cxt(size, id_ls):
+    obj_ls = []
+    att_ls = id_ls
+    table = []
+    for bun in bunnies(size):
+        obj_ls.append(repr(bun))
+        row = [bun.check_id(id_) for id_ in id_ls]
+        table.append(row)
+    cxt = fca.Context(table, obj_ls, map(str, att_ls))
+    return cxt.reduce_objects()
+
+dest = '../etc/test_run'
+def ce_finder(imp, wait):
+    proved = p9m4.prover9(imp, dest  + '/ces', wait / 100.)
+    if proved == True:
+        ans = (None, 'Implication proved.')
+    else:
+        found, reason = p9m4.mace4(imp, dest  + '/ces', wait / 100.)
+        if not found == None:
+            ans = (found, reason)
+            premise = map(lambda x: identity.Identity.func_str2id(x), imp.premise)
+            conclusion = map(lambda x: identity.Identity.func_str2id(x), imp.conclusion)
+        else:
+            premise = map(lambda x: identity.Identity.func_str2id(x), imp.premise)
+            conclusion = map(lambda x: identity.Identity.func_str2id(x), imp.conclusion)
+            id_imp = fca.Implication(premise, conclusion)
+            bun, reason = InfBunny.find(id_imp, wait, kern_size=3)
+            ans = (bun, reason)
+    return ans
+
+def has_attribute(object_repr, attr_name):
+    id_ = identity.Identity.func_str2id(attr_name)
+    bun = eval(object_repr)
+    limit = None
+    if type(bun) == InfBunny:
+        limit = 8
+    return bun.check_id(id_, limit=limit)
+    
+#     obj_lines = object_name.split('\n')
+#     if obj_lines[0].strip().startswith('INFINITE'):
+#         ibun = bunny.InfBunny.read(object_name)
+#         return ibun.check_id(id_, limit=20)
+#     elif obj_lines[0].strip().startswith('BUNNY No'):
+#         ind_start = obj_lines[0].find('No')
+#         ind_end =  obj_lines[0].find(',')
+#         index = int( obj_lines[0][ind_start+3:ind_end] )
+#         size = int(obj_lines[0][-1])
+#         bun = bunny.show(index, size)
+#         return bun.check_id(id_)
+#     else:
+#         print obj_lines[0].strip()
+#         print object_name
+#         assert 0
+
+########MULTIPROCESSING
+import multiprocessing as mp
+import time
+
+def f(l, i):
+    l.acquire()
+    print 'hello world', i
+    l.release()
+
+################################################################
+if __name__ == '__main__':
+    ################################################
+#     lock = mp.Lock()
+# 
+#     for num in range(10):
+#         mp.Process(target=f, args=(lock, num)).start()
+#     
+#     p1 = mp.Process(target=time.sleep, args=(1000,))
+#     p2 = mp.Process(target=time.sleep, args=(3,))
+#     p1.start()
+#     p2.start()
+#     while p2.is_alive():
+#         pass
+#     print 'Is p2 alive? -', p2.is_alive()
+#     print 'Is p1 alive? -', p1.is_alive()
+#     p1.terminate()
+#     time.sleep(1)
+#     print 'Is p1 alive? -', p1.is_alive()
+#     print p1.exitcode, p2.exitcode
+    #################################################
+        
+#     id_ls = read_ids('../utils/ids5.txt')
+#     cxt = init_cxt(2, id_ls)
+    cxt = fca.read_cxt('/home/artreven/Dropbox/personal/Code/bunny/etc/test_run_old/current_cxt.cxt')
+    print 'context read'
+    ae_bunnies = ae.AE(dest, cxt, has_attribute, ce_finder)
+    ae_bunnies.step = 4174
+    ae_bunnies.run(300, 1)
 
 ######################Identities manually###########################
 ####SIZE = 2
@@ -121,84 +223,3 @@ import auto_ae.ae
 #                   id61, id62, id63, id64, id65, id66, id67, id68, id69, id70,
 #                   id71, id72, id73, id74, id75, id76, id77, id78, id79, id80,
 #                   id81, id82, id83, id84, id85, id86]
-
-#####################Identities from file##########################
-def read_ids(path):
-    """
-    Reads identities from given path. One identity per line.
-    """
-    id_ls = []
-    with open(path, 'r') as f_ids:
-        for line_id in f_ids:
-            new_id = beidentity.Identity.func_str2id(line_id)
-            id_ls.append(new_id)
-    return id_ls
-
-#####################Some necessary definitions to start########################
-def init_cxt(size, id_ls):
-    obj_ls = []
-    att_ls = id_ls
-    table = []
-    for bun in bebunny.bunnies(size):
-        obj_ls.append(bun)
-        row = [bun.check_id(id_) for id_ in id_ls]
-        table.append(row)
-    cxt = fca.Context(table, obj_ls, att_ls)
-    return cxt.reduce_objects()
-
-def ce_finder(basis, dest, wait):
-    limit = 10
-    ce_dict = {}
-    fin = 0
-    no_ces = 0
-    bun = None
-    prev = None
-    found = {}
-    proved = []
-    for imp in basis:
-        for j in imp.conclusion:
-            unit_imp = fca.Implication(imp.premise, set((j,)))
-            # first try mace
-            if wait[1] >= 0:
-                found = bep9m4.mace4((unit_imp,), dest  + '/ces', wait[1])
-            if found != {}:
-                fin += 1
-                no_ces += 1
-                ce_dict.update(found)
-            elif found == {}:
-                if wait[2] >= 0:
-                    (proved, _) = bep9m4.prover9((unit_imp,), dest  + '/ces', wait[2])
-                if len(proved) == 1:
-                    continue
-                elif len(proved) == 0:
-                    bun = bebunny.InfBunny.find(imp.premise, j, limit, wait[0], prev)
-                    if bun != None:
-                        prev = bun
-                        ce_dict[unit_imp] = bun
-                        no_ces += 1
-    inf = no_ces - fin
-    m = '\n\n\n***{0} CEs found: {1} finite and {2} infinite\n'.format(no_ces, fin, inf)
-    with open(dest + '/progress.txt', 'a') as file:
-        file.write(m)
-    file.close()
-    print m
-    return ce_dict
-
-#####################################MAIN######################################
-if __name__ == '__main__':
-    dest = './ids_size_leq7'
-    prover = bep9m4.prover9
-    id_ls = read_ids('./ids6.txt')
-    cxt = init_cxt(2, id_ls)
-    basis = cxt.get_aibasis()
-    ae = rc.ae.AE(cxt, dest, prover, ce_finder)
-    wait_inf, wait_fin, wait_proof = None, 1, 1
-    wait = [wait_inf, wait_fin, wait_proof]
-    dict_ces = ce_finder(basis, dest, wait)
-    # here aim is to find such an implication that search space for infinite
-    # algebras is exhausted, but no ce found, and check by Prover9 and Mace4 in
-    # advance. Check if InfBunny.find reports if search space is exhausted. 
-        
-    
-    
-#     ae.run((0, 2, 2), 2)

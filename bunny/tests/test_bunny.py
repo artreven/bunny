@@ -347,7 +347,7 @@ class TestInfBunny():
         assert not all(ibun.check_id(id_, 10) for id_ in ids_neg)
         assert all(ibun.check_id(id_, 10) for id_ in ids_pos)
         
-    def test_find205(self):
+    def test_find206(self):
         imp_str = 'f0 = f2(f0,f0), x = f2(f0,f1(x)), f0 = f2(f1(f0),f0), f0 = f2(f1(x),f0), x = x, f0 = f2(f0,f1(f0)), f0 = f2(f1(x),x), f0 = f2(x,f1(x)) => f0 = f2(x,f0)'
         premise, conclusion = imp_str.split('=>')
         premise_ids = map(lambda x: x.strip(), premise.split(', '))
@@ -357,7 +357,9 @@ class TestInfBunny():
         imp = fca.Implication(ids_pos, ids_neg)
 
         ibun = bunny.bunny.InfBunny.find(imp, wait_time=15, kern_size=3)[0]
-        assert not ibun
+        assert ibun != None
+        assert not all(ibun.check_id(id_, 10) for id_ in ids_neg)
+        assert all(ibun.check_id(id_, 10) for id_ in ids_pos)
         
         
     def test_find300(self):
@@ -374,40 +376,58 @@ class TestInfBunny():
         assert not all(ibun.check_id(id_, 10) for id_ in ids_neg)
         assert all(ibun.check_id(id_, 10) for id_ in ids_pos)
         
-###############################################################################
-    @nottest    
-    def test_find6(self):
-        print '\ttest_find6\n'
-        # [a = x*(-a), x = x, x = x*(-x), x = a*(-x), x = x*a, a = a*(-a), a = a*a] => -a = x*y
-
-        id1 = bunny.identity.Identity.make_identity('a=x*(-a)')
-        id2 = bunny.identity.Identity.make_identity('x=x')
-        id3 = bunny.identity.Identity.make_identity('x=x*(-x)')
-        id4 = bunny.identity.Identity.make_identity('x=a*(-x)')
-        id5 = bunny.identity.Identity.make_identity('x=x*a')
-        id6 = bunny.identity.Identity.make_identity('a=a*(-a)')
-        id7 = bunny.identity.Identity.make_identity('a=a*a')
-        idn = bunny.identity.Identity.make_identity('-a=x*y')
-        bunny_found = bunny.bunny.InfBunny.find([id1, id2, id3, id5, id6, id7], idn, limit=8, t_limit=65)
-        assert bunny_found != None
+    def test_find301(self):
+        imp_str = 'x = f2(f1(x),f0), f0 = f2(f1(f0),f0), f0 = f2(f0,f1(x)), x = x, f0 = f2(x,f1(f0)), f0 = f2(x,f1(x)), f0 = f2(f0,f1(f0)), f0 = f2(x,f1(y)) => f0 = f2(f1(x),x), f0 = f2(f1(f0),x)'
+        premise, conclusion = imp_str.split('=>')
+        premise_ids = map(lambda x: x.strip(), premise.split(', '))
+        conclusion_ids = map(lambda x: x.strip(), conclusion.split(', '))
+        ids_pos = map(lambda x: bunny.identity.Identity.func_str2id(x), premise_ids)
+        ids_neg = map(lambda x: bunny.identity.Identity.func_str2id(x), conclusion_ids)
+        imp = fca.Implication(ids_pos, ids_neg)
+            
+        ibun = bunny.bunny.InfBunny.find(imp, wait_time=75, kern_size=3)[0]
+        assert ibun != None
+        assert not all(ibun.check_id(id_, 10) for id_ in ids_neg)
+        assert all(ibun.check_id(id_, 10) for id_ in ids_pos)
         
-    @nottest
-    def test_find8(self):
-        print '\ttest_find8\n'
-        id22 = bunny.identity.Identity.make_identity('a=a*(-a)')
-        id59 = bunny.identity.Identity.make_identity('x=-(y*x)')
-        bunny_found = bunny.bunny.InfBunny.find([id59, ], id22, limit=8, t_limit=10)
-        f2 = {'condition1': (lambda m, n: True, 
-                             lambda m, n: n + 1,
-                             'True',
-                             'n + 1')}
-        f1 = {'condition1': (lambda n: n >= 1, 
-                             lambda n: n - 1,
-                             'n >= 1',
-                             'n - 1'),
-              0: 1}
-        bun = bunny.bunny.InfBunny(f2, f1)
-        check59 = bun.check_id(id59, 8)
-        check22 = bun.check_id(id22, 8)
-        print check59, check22
-        assert bunny_found != None
+    def test_find302(self):
+        imp_str = 'x = f2(f1(x),f0), f0 = f2(f1(f0),f0), f0 = f2(f1(f0),x), x = x, x = f2(f1(x),x), x = f2(f1(x),y), f0 = f2(f0,f1(f0)) => f0 = f2(f0,f0)'
+        premise, conclusion = imp_str.split('=>')
+        premise_ids = map(lambda x: x.strip(), premise.split(', '))
+        conclusion_ids = map(lambda x: x.strip(), conclusion.split(', '))
+        ids_pos = map(lambda x: bunny.identity.Identity.func_str2id(x), premise_ids)
+        ids_neg = map(lambda x: bunny.identity.Identity.func_str2id(x), conclusion_ids)
+        imp = fca.Implication(ids_pos, ids_neg)
+            
+        ibun = bunny.bunny.InfBunny.find(imp, wait_time=75, kern_size=3)[0]
+        assert ibun != None
+        assert not all(ibun.check_id(id_, 10) for id_ in ids_neg)
+        assert all(ibun.check_id(id_, 10) for id_ in ids_pos)
+    
+    def test_find303(self):
+        imp_str = 'x = x, f0 = f2(f1(x),y), f0 = f2(f1(x),x), f0 = f2(f1(f0),x), f0 = f2(f1(x),f0), x = f2(f0,f1(x)), f0 = f2(f0,f1(f0)), f0 = f2(f1(f0),f0) => f0 = f2(x,f1(x))'
+        premise, conclusion = imp_str.split('=>')
+        premise_ids = map(lambda x: x.strip(), premise.split(', '))
+        conclusion_ids = map(lambda x: x.strip(), conclusion.split(', '))
+        ids_pos = map(lambda x: bunny.identity.Identity.func_str2id(x), premise_ids)
+        ids_neg = map(lambda x: bunny.identity.Identity.func_str2id(x), conclusion_ids)
+        imp = fca.Implication(ids_pos, ids_neg)
+            
+        ibun = bunny.bunny.InfBunny.find(imp, wait_time=75, kern_size=3)[0]
+        assert ibun != None
+        assert not all(ibun.check_id(id_, 10) for id_ in ids_neg)
+        assert all(ibun.check_id(id_, 10) for id_ in ids_pos)
+        
+    def test_find304(self):
+        imp_str = 'x = x, x = f1(f2(x,y)) => f0 = f1(f2(f0,f0)), x = f2(f1(x),f0), f0 = f2(f1(f0),f0), f0 = f2(f1(f0),x), x = f1(f2(x,f0)), x = f2(f1(x),x), x = f2(f1(x),y), f0 = f1(f2(f0,x)), x = f1(f2(x,x))'
+        premise, conclusion = imp_str.split('=>')
+        premise_ids = map(lambda x: x.strip(), premise.split(', '))
+        conclusion_ids = map(lambda x: x.strip(), conclusion.split(', '))
+        ids_pos = map(lambda x: bunny.identity.Identity.func_str2id(x), premise_ids)
+        ids_neg = map(lambda x: bunny.identity.Identity.func_str2id(x), conclusion_ids)
+        imp = fca.Implication(ids_pos, ids_neg)
+            
+        ibun = bunny.bunny.InfBunny.find(imp, wait_time=75, kern_size=3)[0]
+        assert ibun != None
+        assert not all(ibun.check_id(id_, 10) for id_ in ids_neg)
+        assert all(ibun.check_id(id_, 10) for id_ in ids_pos)
