@@ -571,6 +571,7 @@ class Value(Variable):
         if not (isinstance(arg, int) or 
                 (isinstance(arg, str) and
                  any(c in arg for c in vary_syms))):
+            print type(arg), arg.isalnum(), arg
             raise Exception, ("New value {} has to be".format(arg) +
                               " either int or str with 'n' or 'm'")
         if isinstance(arg, str) and ' ' in arg:
@@ -736,10 +737,6 @@ def impose_bindings(bun, id_, domain_dict, var_deps):
                 lhs = id_.left_term(bun, point_dict)
                 rhs = id_.right_term(bun, point_dict)
                 if not rhs == lhs:
-                    ###
-                    #print bun
-                    #print id_, point_dict, lhs, rhs
-                    ###
                     identify_variables(lhs, rhs)
                     ### Not sure if consistency check is needed here
                     consistent = check_consistency(bun)
@@ -818,9 +815,9 @@ def construct(imp, wait_time, kern_size=3):
                    PiecewiseFunc('f1', [], size=kern_size-1),
                    Value(0))
     var_deps = dict()
-    domain_dict = {'x': range(kern_size) + ["'n+0'"],
-                   'y': range(kern_size) + ["'m+0'"],
-                   'z': range(kern_size) + ["'h+0'"]}
+    domain_dict = {'x': range(kern_size) + ["n+0"],
+                   'y': range(kern_size) + ["m+0"],
+                   'z': range(kern_size) + ["h+0"]}
     for id_ in imp.premise:
         impose_bindings(bun, id_, domain_dict, var_deps)
     def_vars = []; undef_vars = []

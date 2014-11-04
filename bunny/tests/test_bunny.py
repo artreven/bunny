@@ -202,7 +202,7 @@ class TestInfBunny():
         id1 = bunny.identity.Identity.make_identity('x=a*(-x)') #45
         id2 = bunny.identity.Identity.make_identity('x=-(a*x)') #55
         imp = fca.Implication({id1}, {id2})
-        bunny_found = bunny.bunny.InfBunny.find(imp, wait_time=10, kern_size=3)[0]
+        bunny_found = bunny.bunny.InfBunny.find(imp, wait_time=10, kern_size=0)[0]
         assert bunny_found != None
         assert bunny_found.check_id(id1, 10)
         assert not bunny_found.check_id(id2, 10)
@@ -216,7 +216,7 @@ class TestInfBunny():
         id50 = bunny.identity.Identity.make_identity('x=(-a)*x')
         id55 = bunny.identity.Identity.make_identity('x=-(a*x)') #55
         imp = fca.Implication({id45, id50}, {id55})
-        bunny_found = bunny.bunny.InfBunny.find(imp, wait_time=10, kern_size=3)[0]
+        bunny_found = bunny.bunny.InfBunny.find(imp, wait_time=10, kern_size=0)[0]
         assert bunny_found != None
         assert bunny_found.check_id(id45, 10)
         assert not bunny_found.check_id(id55, 10)
@@ -245,14 +245,12 @@ class TestInfBunny():
         idn = bunny.identity.Identity.make_identity('a=(x*a)') #10
         #entspricht G_603 - G_618
         imp = fca.Implication({id1, id2, id3}, {idn})
-        bunny_found = bunny.bunny.InfBunny.find(imp, wait_time=30, kern_size=3)[0]
+        bunny_found = bunny.bunny.InfBunny.find(imp, wait_time=30, kern_size=0)[0]
         assert bunny_found != None
         assert bunny_found.check_id(id1, 10)
         assert bunny_found.check_id(id2, 10)
         assert bunny_found.check_id(id3, 10)
         assert not bunny_found.check_id(idn, 10)
-        #print bunny_found.f2_dict
-        #print bunny_found.f1_dict
     
     def test_find201(self):
         print '\ttest_find201\n'
@@ -289,8 +287,8 @@ class TestInfBunny():
         id56 = bunny.identity.Identity.make_identity('x=-(x*a)')
         
         imp = fca.Implication({id20, id24, id32, id33, id50, id51}, {id56})        
-        bunny_found = bunny.bunny.InfBunny.find(imp, wait_time=100, kern_size=3)[0]
-        assert bunny_found != None
+        bun = bunny.bunny.InfBunny.find(imp, wait_time=100, kern_size=3)[0]
+        assert bun != None
         
     def test_find203(self):
         print '\ttest_find203\n'
@@ -309,9 +307,35 @@ class TestInfBunny():
         id_pos_ls = [id6, id22, id26, id32, id34, id39, id47, id55, id65]
         
         imp = fca.Implication(id_pos_ls, {id41})        
-        bunny_found, reason = bunny.bunny.InfBunny.find(imp, wait_time=100, kern_size=3)
+        bun, reason = bunny.bunny.InfBunny.find(imp, wait_time=100, kern_size=3)
         # see G566 from Kestler's dissertation
-        assert bunny_found != None
+        
+                ###
+#         t = (0,0)
+#         while t in bun.funcs['f1'].graph:
+#             bun.funcs['f1'].graph.remove(t)
+#         bun.funcs['f1'].graph.append((0, 1))
+#         
+#         t = (bunny.bunny.Value(0), bunny.bunny.Value('n+1'), bunny.bunny.Value('n+0'))
+#         while t in bun.funcs['f2'].graph: 
+#             bun.funcs['f2'].graph.remove(t)
+#         bun.funcs['f2'].graph.append((bunny.bunny.Value(0), bunny.bunny.Value('n+0'), bunny.bunny.Value('n-1')))
+#         
+#         t = (bunny.bunny.Value('n+1'), bunny.bunny.Value(0), bunny.bunny.Value(0))
+#         while t in bun.funcs['f2'].graph: 
+#             bun.funcs['f2'].graph.remove(t)
+#         bun.funcs['f2'].graph.append((bunny.bunny.Value('n+0'), bunny.bunny.Value(0), bunny.bunny.Value('n-1')))
+        
+#         t = (0, 1, 2)
+#         while t in bun.funcs['f2'].graph: 
+#             bun.funcs['f2'].graph.remove(t)
+#         bun.funcs['f2'].graph.append((0, 1, 1))
+        ###
+#         print bun
+#         print [(str(id_), bun.check_id(id_, 10, v=True)) for id_ in ids_pos]
+#         print ids_neg[0], bun.check_id(ids_neg[0], 10, True)
+        
+        assert bun != None
         
     def test_find204(self):
         print '\ttest_find204\n'
@@ -330,8 +354,8 @@ class TestInfBunny():
         id_pos_ls = [id1, id2, id3, id4, id5, id6, id7]
         
         imp = fca.Implication(id_pos_ls, {idn})  
-        bunny_found, reason = bunny.bunny.InfBunny.find(imp, wait_time=100, kern_size=4)
-        assert bunny_found != None
+        bun, reason = bunny.bunny.InfBunny.find(imp, wait_time=100, kern_size=0)
+        assert bun != None
         
     def test_find205(self):
         imp_str = 'f0 = f2(f0,f0), x = x, f0 = f1(f2(f0,f0)), f0 = f1(f1(f1(f0))), x = f2(f1(x),f0), f1(f0) = f2(f0,f0), x = f2(x,f1(x)), f0 = f1(f0), f0 = f1(f1(f0)), f1(f0) = f1(f1(f0)), f0 = f2(f0,f1(f0)), f0 = f2(f1(f0),f0), x = f2(f0,f1(x)) => x = f1(f2(f0,x)), x = f1(f2(x,f0))'
@@ -356,11 +380,8 @@ class TestInfBunny():
         ids_neg = map(lambda x: bunny.identity.Identity.func_str2id(x), conclusion_ids)
         imp = fca.Implication(ids_pos, ids_neg)
 
-        ibun = bunny.bunny.InfBunny.find(imp, wait_time=15, kern_size=3)[0]
-        assert ibun != None
-        assert not all(ibun.check_id(id_, 10) for id_ in ids_neg)
-        assert all(ibun.check_id(id_, 10) for id_ in ids_pos)
-        
+        bun = bunny.bunny.InfBunny.find(imp, wait_time=15, kern_size=1)[0]
+        assert bun != None
         
     def test_find300(self):
         imp_str = 'x = x, x = f1(f2(y,x)) => x = f2(f0,f1(x))'

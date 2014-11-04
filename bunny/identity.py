@@ -113,11 +113,9 @@ class Term(object):
         @return: value from algebra's universe (natural numbers) or None if
         not defined
         '''
-        for i, j in dict_values.items():
-            exec('{0} = {1}'.format(i, j))
-        for func_symbol in self.func_symbols:
-            exec(func_symbol + ' = algebra.funcs["{}"]'.format(func_symbol))
-        result = eval(self.compiled_str)
+        dict_values.update( dict((x, algebra.funcs["{}".format(x)])
+                                 for x in self.func_symbols) )
+        result = eval(self.compiled_str, globals(), dict_values)
         if isinstance(result, int) and (result < 0):
             info = 'result = {0}, '.format(result)
             info += 'values = {0}, '.format(values)
