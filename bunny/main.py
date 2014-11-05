@@ -36,7 +36,13 @@ def init_cxt(size, id_ls):
 
 dest = '../etc/test_run'
 def ce_finder(imp, wait):
-    proved = p9m4.prover9(imp, dest  + '/ces', wait / 100.)
+    if any(str(id_) == 'x = y' for id_ in imp.conclusion):
+        old_conclusion = imp.conclsuion.copy()
+        imp.conclusion = {id_ for id_ in imp.conclusion if str(id_) == 'x = y'} 
+        proved = p9m4.prover9(imp, dest  + '/ces', wait / 100.)
+        imp.conclsuion = old_conclusion
+    else:
+        proved = p9m4.prover9(imp, dest  + '/ces', wait / 100.)
     if proved == True:
         ans = (None, 'Implication proved.')
     else:
@@ -60,22 +66,6 @@ def has_attribute(object_repr, attr_name):
     if type(bun) == InfBunny:
         limit = 8
     return bun.check_id(id_, limit=limit)
-    
-#     obj_lines = object_name.split('\n')
-#     if obj_lines[0].strip().startswith('INFINITE'):
-#         ibun = bunny.InfBunny.read(object_name)
-#         return ibun.check_id(id_, limit=20)
-#     elif obj_lines[0].strip().startswith('BUNNY No'):
-#         ind_start = obj_lines[0].find('No')
-#         ind_end =  obj_lines[0].find(',')
-#         index = int( obj_lines[0][ind_start+3:ind_end] )
-#         size = int(obj_lines[0][-1])
-#         bun = bunny.show(index, size)
-#         return bun.check_id(id_)
-#     else:
-#         print obj_lines[0].strip()
-#         print object_name
-#         assert 0
 
 ########MULTIPROCESSING
 import multiprocessing as mp

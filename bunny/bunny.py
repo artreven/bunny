@@ -600,7 +600,7 @@ def _inf_bunnies(imp, wait_time, kern_size):
     '''
     bun = construct(imp, wait_time, kern_size)
     try:
-        assert any(not bun.check_id(id_, kern_size+4) for id_ in imp.conclusion)
+        assert not imp.conclusion or any(not bun.check_id(id_, kern_size+4) for id_ in imp.conclusion)
         assert all(bun.check_id(id_, kern_size+4) for id_ in imp.premise)
     except AssertionError:
         print [(str(id_), bun.check_id(id_, kern_size+4, v=True)) for id_ in imp.conclusion]
@@ -827,11 +827,18 @@ def construct(imp, wait_time, kern_size=3):
         
     domain_its = OrderedDict()
     ts = time.time()
+    ##
+    c=0
+    ##
     while True:
         # Check time constraint
         if time.time()-ts >= wait_time:
             raise TimeoutError
         fetch_next(bun, undef_vars, def_vars, get_domain)
+        ##
+        print 'here', c; c+=1
+        print bun
+        ##
         if violates_ids(bun, imp.conclusion):
             return bun
 
@@ -844,10 +851,9 @@ if __name__ == '__main__':
     
     import p9m4
     
-    imp_str = 'x = f2(f1(x),f0), f0 = f2(f1(f0),f0), f0 = f2(f1(f0),x), x = x, x = f2(f1(x),x), x = f2(f1(x),y), f0 = f2(f0,f1(f0)) => f0 = f2(f0,f0)'
-    imp_str = 'f0 = f2(f0,f0), x = f2(f1(x),f0), f0 = f2(f1(f0),f0), f0 = f2(f1(f0),x), x = x, x = f2(f1(x),x), x = f2(f1(x),y) => f0 = f2(f0,f1(f0))'
-    imp_str = 'x = x, f0 = f2(f1(x),y), f0 = f2(f1(x),x), f0 = f2(f1(f0),x), f0 = f2(f1(x),f0), x = f2(f0,f1(x)), f0 = f2(f0,f1(f0)), f0 = f2(f1(f0),f0) => f0 = f2(x,f1(x))'
-    imp_str = 'x = x, x = f1(f2(x,y)) => f0 = f1(f2(f0,f0)), x = f2(f1(x),f0), f0 = f2(f1(f0),f0), f0 = f2(f1(f0),x), x = f1(f2(x,f0)), x = f2(f1(x),x), x = f2(f1(x),y), f0 = f1(f2(f0,x)), x = f1(f2(x,x))'
+    imp_str = 'f0 = f1(f1(f0)), f0 = f1(f2(f0,f0)), x = f1(f2(x,y)), f0 = f2(f1(f0),f0), f1(f0) = f2(f0,x), x = x, x = f1(f2(x,f0)), f0 = f1(f2(f0,x)), x = f1(f2(x,x)), f1(f0) = f2(f0,f0) => f0 = f2(f1(f0),x)'
+    imp_str = 'f0 = f2(f0,f0), f0 = f1(f1(f0)), f0 = f1(f2(f0,f0)), f0 = f1(f1(f1(f0))), f1(f0) = f2(f0,f0), f0 = f1(f0), f0 = f2(x,f1(x)), x = x, f1(f0) = f1(f1(f0)), f0 = f1(f1(f1(x))), x = f2(x,f1(f0)), f0 = f2(f0,f1(f0)), x = f2(x,f0), f0 = f2(f1(f0),f0) => f1(f0) = f1(x), x = f2(x,f1(y)), f0 = f1(f2(x,f0)), f0 = f2(f1(x),y), x = f2(x,x), f0 = f2(x,f0), f1(x) = f2(f0,x), f1(f0) = f2(x,x), x = f2(f0,x), f1(f0) = f2(x,f0), f1(x) = f2(f0,y), f1(x) = f2(y,f0), x = f2(f1(f0),x), x = f1(f2(x,f0)), f0 = f1(x), f1(f0) = f2(x,y), x = f2(y,x), f1(x) = f2(y,y), f0 = f1(f1(x)), x = f1(x), f0 = f2(x,y), x = f2(f1(x),y), f0 = f1(f2(f0,x)), f1(x) = f2(x,y), f0 = f2(x,f1(y)), x = f2(y,f1(x)), x = f1(f2(x,y)), f0 = f2(f0,x), x = f2(f1(x),f0), f0 = f2(f1(x),x), f0 = f1(f2(x,y)), f0 = f2(f1(f0),x), f0 = f2(f0,f1(x)), x = f2(f0,f1(x)), x = y, x = f1(f2(x,x)), x = f1(f2(f0,x)), f1(f0) = f1(f1(x)), f1(x) = f2(f0,f0), f1(x) = f2(x,f0), x = f1(f1(f1(x))), f1(x) = f2(y,z), f0 = f1(f2(x,x)), x = f2(x,f1(x)), f1(x) = f2(y,x), f1(f0) = f2(f0,x), f0 = f2(f1(x),f0), f1(x) = f1(f1(x)), f0 = f2(x,x), x = f2(f1(x),x), x = f1(f1(x)), f0 = f2(x,f1(f0)), x = f2(x,y), x = f1(f2(y,x)), f1(x) = f2(x,x), x = f2(f1(y),x)'
+    imp_str = 'f0 = f2(f0,f0), f0 = f1(f1(f0)), f0 = f1(f2(f0,f0)), f0 = f1(f1(f1(f0))), f1(f0) = f2(f0,f0), f0 = f1(f0), f0 = f2(x,f1(x)), x = x, f1(f0) = f1(f1(f0)), f0 = f1(f1(f1(x))), x = f2(x,f1(f0)), f0 = f2(f0,f1(f0)), x = f2(x,f0), f0 = f2(f1(f0),f0) => x = y'
     premise, conclusion = imp_str.split('=>')
     premise_ids = map(lambda x: x.strip(), premise.split(', '))
     conclusion_ids = map(lambda x: x.strip(), conclusion.split(', '))
@@ -855,54 +861,11 @@ if __name__ == '__main__':
     ids_neg = map(lambda x: identity.Identity.func_str2id(x), conclusion_ids)
     imp = fca.Implication(ids_pos, ids_neg)
     
-    ibun = InfBunny.find(imp, wait_time=75, kern_size=3)[0]
+    proved = p9m4.prover9(imp, '.', 2)
+    print proved
+    
+    ibun = InfBunny.find(imp, wait_time=275, kern_size=4)[0]
     print [(str(id_), ibun.check_id(id_, 10, v=True)) for id_ in ids_neg]
     print [(str(id_), ibun.check_id(id_, 10, v=True)) for id_ in ids_pos]
     assert not all(ibun.check_id(id_, 10) for id_ in ids_neg)
     assert all(ibun.check_id(id_, 10) for id_ in ids_pos)
-    
-    ##############################################################
-    
-#     id20 = identity.Identity.make_identity('a=-(-(-a))')
-#     id22 = identity.Identity.make_identity('a=a*(-a)')
-#     id24 = identity.Identity.make_identity('a=(-a)*a')
-#     id32 = identity.Identity.make_identity('a=-(a*a)')
-#     id45 = identity.Identity.make_identity('x=a*(-x)')
-#     id50 = identity.Identity.make_identity('x=(-a)*x')
-#     
-#     id55 = identity.Identity.make_identity('x=-(a*x)')
-#     
-#     ids_pos = {id20, id22, id24, id32, id45, id50}
-#     
-#     imp = fca.Implication(ids_pos, {id55})
-#     command_str = 'ibun = InfBunny.find(imp, wait_time=200, kern_size=3)[0]'
-#     cProfile.run(command_str)
-#     print repr(ibun)
-#     ibun = eval( repr(ibun) )
-#     print id55, ibun.check_id(id55, 7, v=True) 
-#     print [(str(id_), ibun.check_id(id_, 10, v=True)) for id_ in ids_pos]
-#     assert not ibun.check_id(id55, 10)
-#     assert all(ibun.check_id(id_, 10) for id_ in ids_pos)
-#     
-#     ##############################################################
-#     
-#     id6 = identity.Identity.make_identity('a=-(-a)')
-#     id22 = identity.Identity.make_identity('a=a*(-a)')
-#     id26 = identity.Identity.make_identity('a=x*(-a)')
-#     id32 = identity.Identity.make_identity('a=-(a*a)')
-#     id34 = identity.Identity.make_identity('a=-(x*a)')
-#     id39 = identity.Identity.make_identity('-a=a*a')
-#     id47 = identity.Identity.make_identity('x=x*(-x)')
-#     id55 = identity.Identity.make_identity('x=-(a*x)')
-#     id65 = identity.Identity.make_identity('-x=x*x')
-#     
-#     id41 = identity.Identity.make_identity('-a=x*a')
-#     
-#     id_pos_ls = [id6, id22, id26, id32, id34, id39, id47, id55, id65]
-#     imp = fca.Implication(id_pos_ls, {id41})        
-#     command_str = 'ibun = InfBunny.find(imp, wait_time=30000, kern_size=3)[0]'
-#     cProfile.run(command_str)
-#     print id41, ibun.check_id(id41, 7, v=True) 
-#     print [(str(id_), ibun.check_id(id_, 10, v=True)) for id_ in id_pos_ls]
-#     assert not ibun.check_id(id41, 10)
-#     assert all(ibun.check_id(id_, 10) for id_ in id_pos_ls)

@@ -10,7 +10,7 @@ import sympy
 
 import fca
 
-import bunny.identity, bunny.bunny
+import bunny.identity, bunny.bunny, bunny.p9m4
 
 class TestVariable:    
     def setUp(self):
@@ -305,35 +305,39 @@ class TestInfBunny():
         id41 = bunny.identity.Identity.make_identity('-a=x*a')
         
         id_pos_ls = [id6, id22, id26, id32, id34, id39, id47, id55, id65]
+        id_pos_ls = [id6, id26, id34, id47, id55]
         
         imp = fca.Implication(id_pos_ls, {id41})        
         bun, reason = bunny.bunny.InfBunny.find(imp, wait_time=100, kern_size=3)
         # see G566 from Kestler's dissertation
+        print bunny.p9m4.mace4(imp, '.', 5)
         
-                ###
-#         t = (0,0)
+        ###
+#         t = (bunny.bunny.Value('n+0'), bunny.bunny.Value(2))
 #         while t in bun.funcs['f1'].graph:
 #             bun.funcs['f1'].graph.remove(t)
-#         bun.funcs['f1'].graph.append((0, 1))
+#         bun.funcs['f1'].graph.append( (bunny.bunny.Value('n+0'), bunny.bunny.Value('n+1')) )
 #         
-#         t = (bunny.bunny.Value(0), bunny.bunny.Value('n+1'), bunny.bunny.Value('n+0'))
+#         t = (2,0)
+#         while t in bun.funcs['f1'].graph:
+#             bun.funcs['f1'].graph.remove(t)
+#         bun.funcs['f1'].graph.append((2, 3))
+#          
+#         t = (bunny.bunny.Value('n+0'), bunny.bunny.Value(2), bunny.bunny.Value('n+0'))
 #         while t in bun.funcs['f2'].graph: 
 #             bun.funcs['f2'].graph.remove(t)
-#         bun.funcs['f2'].graph.append((bunny.bunny.Value(0), bunny.bunny.Value('n+0'), bunny.bunny.Value('n-1')))
+#         bun.funcs['f2'].graph.append( (bunny.bunny.Value('n+0'), bunny.bunny.Value('n+1'), bunny.bunny.Value('n+0')) )
+# 
+#         t = (bunny.bunny.Value(2), bunny.bunny.Value(0), bunny.bunny.Value(2))
+#         while t in bun.funcs['f2'].graph: 
+#             bun.funcs['f2'].graph.remove(t)
+#         bun.funcs['f2'].graph.append( (bunny.bunny.Value(2), bunny.bunny.Value(0), bunny.bunny.Value(1)) )
 #         
-#         t = (bunny.bunny.Value('n+1'), bunny.bunny.Value(0), bunny.bunny.Value(0))
-#         while t in bun.funcs['f2'].graph: 
-#             bun.funcs['f2'].graph.remove(t)
-#         bun.funcs['f2'].graph.append((bunny.bunny.Value('n+0'), bunny.bunny.Value(0), bunny.bunny.Value('n-1')))
-        
-#         t = (0, 1, 2)
-#         while t in bun.funcs['f2'].graph: 
-#             bun.funcs['f2'].graph.remove(t)
-#         bun.funcs['f2'].graph.append((0, 1, 1))
+#         bun.funcs['f2'].graph.append( (bunny.bunny.Value(2), bunny.bunny.Value(3), bunny.bunny.Value(2)) )
         ###
-#         print bun
-#         print [(str(id_), bun.check_id(id_, 10, v=True)) for id_ in ids_pos]
-#         print ids_neg[0], bun.check_id(ids_neg[0], 10, True)
+        print bun
+        print [(str(id_), bun.check_id(id_, 10, v=True)) for id_ in id_pos_ls]
+        print id41, bun.check_id(id41, 10, True)
         
         assert bun != None
         
