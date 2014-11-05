@@ -100,7 +100,7 @@ if __name__ == '__main__':
         
 #     id_ls = read_ids('../utils/ids5.txt')
 #     cxt = init_cxt(2, id_ls)
-    cxt = fca.read_cxt('/home/artreven/Dropbox/personal/Code/bunny/etc/test_run_old/current_cxt.cxt')
+    cxt = fca.read_cxt('../etc/current_cxt.cxt')
     print 'context read'
     ae_bunnies = ae.AE(dest, cxt, has_attribute, ce_finder)
     ae_bunnies.step = 4174
