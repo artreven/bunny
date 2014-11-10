@@ -37,10 +37,10 @@ def init_cxt(size, id_ls):
 dest = '../etc/test_run'
 def ce_finder(imp, wait):
     if any(str(id_) == 'x = y' for id_ in imp.conclusion):
-        old_conclusion = imp.conclsuion.copy()
-        imp.conclusion = {id_ for id_ in imp.conclusion if str(id_) == 'x = y'} 
+        old_conclusion = imp._conclusion.copy()
+        imp._conclusion = {id_ for id_ in imp.conclusion if str(id_) == 'x = y'} 
         proved = p9m4.prover9(imp, dest  + '/ces', wait / 100.)
-        imp.conclsuion = old_conclusion
+        imp._conclsuion = old_conclusion
     else:
         proved = p9m4.prover9(imp, dest  + '/ces', wait / 100.)
     if proved == True:
@@ -55,7 +55,7 @@ def ce_finder(imp, wait):
             premise = map(lambda x: identity.Identity.func_str2id(x), imp.premise)
             conclusion = map(lambda x: identity.Identity.func_str2id(x), imp.conclusion)
             id_imp = fca.Implication(premise, conclusion)
-            bun, reason = InfBunny.find(id_imp, wait, kern_size=3)
+            bun, reason = InfBunny.find(id_imp, wait, kern_size=4)
             ans = (bun, reason)
     return ans
 

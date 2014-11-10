@@ -757,7 +757,7 @@ def construct(imp, wait_time, kern_size=3):
     @param kern_size: size of kernel of algebra, which is essentially the
     counter-example. 
     """
-    def fetch_next(bun, undef_vars, def_vars, get_domain):
+    def fetch_next(bun, undef_vars, def_vars, get_domain, ids_neg):
         vars_number = len(undef_vars) + len(def_vars)
         if vars_number == 0:
             if check_consistency(bun,
@@ -792,7 +792,14 @@ def construct(imp, wait_time, kern_size=3):
                     except IndexError:
                         raise StopIteration
             else:
-                def_vars.append(var)
+                try:
+                    neg_sat = all(bun.check_id(id_, limit=15) for id_ in ids_neg)
+                except ArgError:
+                    neg_sat = False
+                if neg_sat:
+                    undef_vars.append(var)
+                else:
+                    def_vars.append(var)
                 assert len(undef_vars) + len(def_vars) == vars_number
                 if not undef_vars:
                     break
@@ -827,18 +834,11 @@ def construct(imp, wait_time, kern_size=3):
         
     domain_its = OrderedDict()
     ts = time.time()
-    ##
-    c=0
-    ##
     while True:
         # Check time constraint
         if time.time()-ts >= wait_time:
             raise TimeoutError
-        fetch_next(bun, undef_vars, def_vars, get_domain)
-        ##
-        print 'here', c; c+=1
-        print bun
-        ##
+        fetch_next(bun, undef_vars, def_vars, get_domain, imp.conclusion)
         if violates_ids(bun, imp.conclusion):
             return bun
 
@@ -852,8 +852,9 @@ if __name__ == '__main__':
     import p9m4
     
     imp_str = 'f0 = f1(f1(f0)), f0 = f1(f2(f0,f0)), x = f1(f2(x,y)), f0 = f2(f1(f0),f0), f1(f0) = f2(f0,x), x = x, x = f1(f2(x,f0)), f0 = f1(f2(f0,x)), x = f1(f2(x,x)), f1(f0) = f2(f0,f0) => f0 = f2(f1(f0),x)'
-    imp_str = 'f0 = f2(f0,f0), f0 = f1(f1(f0)), f0 = f1(f2(f0,f0)), f0 = f1(f1(f1(f0))), f1(f0) = f2(f0,f0), f0 = f1(f0), f0 = f2(x,f1(x)), x = x, f1(f0) = f1(f1(f0)), f0 = f1(f1(f1(x))), x = f2(x,f1(f0)), f0 = f2(f0,f1(f0)), x = f2(x,f0), f0 = f2(f1(f0),f0) => f1(f0) = f1(x), x = f2(x,f1(y)), f0 = f1(f2(x,f0)), f0 = f2(f1(x),y), x = f2(x,x), f0 = f2(x,f0), f1(x) = f2(f0,x), f1(f0) = f2(x,x), x = f2(f0,x), f1(f0) = f2(x,f0), f1(x) = f2(f0,y), f1(x) = f2(y,f0), x = f2(f1(f0),x), x = f1(f2(x,f0)), f0 = f1(x), f1(f0) = f2(x,y), x = f2(y,x), f1(x) = f2(y,y), f0 = f1(f1(x)), x = f1(x), f0 = f2(x,y), x = f2(f1(x),y), f0 = f1(f2(f0,x)), f1(x) = f2(x,y), f0 = f2(x,f1(y)), x = f2(y,f1(x)), x = f1(f2(x,y)), f0 = f2(f0,x), x = f2(f1(x),f0), f0 = f2(f1(x),x), f0 = f1(f2(x,y)), f0 = f2(f1(f0),x), f0 = f2(f0,f1(x)), x = f2(f0,f1(x)), x = y, x = f1(f2(x,x)), x = f1(f2(f0,x)), f1(f0) = f1(f1(x)), f1(x) = f2(f0,f0), f1(x) = f2(x,f0), x = f1(f1(f1(x))), f1(x) = f2(y,z), f0 = f1(f2(x,x)), x = f2(x,f1(x)), f1(x) = f2(y,x), f1(f0) = f2(f0,x), f0 = f2(f1(x),f0), f1(x) = f1(f1(x)), f0 = f2(x,x), x = f2(f1(x),x), x = f1(f1(x)), f0 = f2(x,f1(f0)), x = f2(x,y), x = f1(f2(y,x)), f1(x) = f2(x,x), x = f2(f1(y),x)'
-    imp_str = 'f0 = f2(f0,f0), f0 = f1(f1(f0)), f0 = f1(f2(f0,f0)), f0 = f1(f1(f1(f0))), f1(f0) = f2(f0,f0), f0 = f1(f0), f0 = f2(x,f1(x)), x = x, f1(f0) = f1(f1(f0)), f0 = f1(f1(f1(x))), x = f2(x,f1(f0)), f0 = f2(f0,f1(f0)), x = f2(x,f0), f0 = f2(f1(f0),f0) => x = y'
+    imp_str = 'x = x, f0 = f1(f2(f0,f0)), f0 = f1(f2(x,x)), f0 = f1(f2(x,f0)), x = f1(f2(f0,x)), f0 = f1(f1(f0)), f0 = f2(f0,f1(f0)) => f1(f0) = f2(f0,f0)'
+    imp_str = 'x = x, f0 = f1(f2(f0,f0)), f0 = f1(f2(x,f0)), x = f1(f2(f0,x)), x = f2(x,f1(x)), x = f1(f2(y,x)), f0 = f1(f1(f0)), f0 = f2(x,f1(f0)), x = f1(f2(x,x)), f0 = f2(f0,f1(f0)) => f1(f0) = f2(f0,f0)'
+    imp_str = 'f0 = f1(f1(f0)), f0 = f1(f2(f0,f0)), x = f1(f2(x,y)), f0 = f2(f1(f0),f0), x = x, x = f1(f2(x,f0)), f0 = f1(f2(f0,x)), x = f1(f2(x,x)), x = f2(f1(x),x) => f1(f0) = f2(f0,f0)'
     premise, conclusion = imp_str.split('=>')
     premise_ids = map(lambda x: x.strip(), premise.split(', '))
     conclusion_ids = map(lambda x: x.strip(), conclusion.split(', '))
@@ -861,10 +862,9 @@ if __name__ == '__main__':
     ids_neg = map(lambda x: identity.Identity.func_str2id(x), conclusion_ids)
     imp = fca.Implication(ids_pos, ids_neg)
     
-    proved = p9m4.prover9(imp, '.', 2)
-    print proved
-    
-    ibun = InfBunny.find(imp, wait_time=275, kern_size=4)[0]
+    ts = time.time()
+    ibun = InfBunny.find(imp, wait_time=1475, kern_size=2)[0]
+    print time.time() - ts
     print [(str(id_), ibun.check_id(id_, 10, v=True)) for id_ in ids_neg]
     print [(str(id_), ibun.check_id(id_, 10, v=True)) for id_ in ids_pos]
     assert not all(ibun.check_id(id_, 10) for id_ in ids_neg)
