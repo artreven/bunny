@@ -356,55 +356,51 @@ class PiecewiseFunc(object):
             if args == t[:-1]:
                 return t[-1]
         # if not in kern or no size
-        if True:#self.size == None or any(args[i] > self.size for i in xrange(len(args))):
-            for t in sorted(self.graph, key=lambda x: len({v for v in ['n', 'm']
-                                                           if v in ''.join(map(str, x)) })):
-                t_str = reduce(lambda x,y: x+y, map(str, t), '')
-                if not any(c in t_str for c in vary_syms):
-                    continue
-                if any(t[i] != args[i] for i in range(len(args)) if t[i].value == None):
-                    continue
-                if any(v.isunset() for v in t): # this is experimental in order to avoid identifying n and m while imposing bindings
-                    continue
-                
-                eq_system = []
-                gotonextt = False
-                for i in range(len(args)):
-                    lhs = t[i].value
-                    rhs = args[i].value
-                    if lhs == None or rhs == None:
-                        if t[i] != args[i]:
-                            gotonextt = True
-                            break
-                        else:
-                            continue
-                    if (isinstance(lhs, int) and
-                        (isinstance(rhs, str) or rhs != lhs)):
-                            gotonextt = True
-                            break
-                    elif (isinstance(rhs, int) and isinstance(lhs, str) and
-                          (self.size == None or (rhs - int(lhs[-2:])) <= self.size)):
-                              gotonextt = True
-                              break
-                    elif isinstance(lhs, int) and lhs == rhs:
-                        continue
-                    if isinstance(rhs, str):
-                        rhs = rhs.replace('n', 'n1').replace('m', 'm1')
-                    equ = sympy.Eq( sympy.sympify(lhs), sympy.sympify(rhs) )
-                    eq_system.append(equ)
-                if gotonextt: continue
-                solution = sympy.solve(eq_system, ['n', 'm'])
-                if not eq_system or (solution and
-                                     not any(x in map(str, solution.keys())
-                                             for x in ['n1', 'm1'])):
-                    if isinstance(t[-1], Variable) and t[-1].value == None:
-                        return t[-1]
+        for t in sorted(self.graph, key=lambda x: len({v for v in ['n', 'm']
+                                                       if v in ''.join(map(str, x)) })):
+            if self.size and all(arg.isint() for arg in args) and all(arg.value < self.size for arg in args):
+                break
+            t_str = reduce(lambda x,y: x+y, map(str, t), '')
+            if not any(c in t_str for c in vary_syms):
+                continue
+            if any(t[i] != args[i] for i in range(len(args)) if t[i].value == None):
+                continue
+            if any(v.isunset() for v in t): # this is experimental in order to avoid identifying n and m while imposing bindings
+                continue
+            
+            eq_system = []
+            gotonextt = False
+            for i in range(len(args)):
+                lhs = t[i].value
+                rhs = args[i].value
+                if lhs == None or rhs == None:
+                    if t[i] != args[i]:
+                        gotonextt = True
+                        break
                     else:
-                        ans = sympy.sympify(str(t[-1])).subs(solution)
-                        ans = str(ans).replace('n1', 'n').replace('m1', 'm')
-                        try: ans = int(ans)
-                        except: pass
-                        return Value(ans)
+                        continue
+                if (isinstance(lhs, int) and rhs != lhs):
+                    gotonextt = True
+                    break
+                elif lhs == rhs:
+                    continue
+                if isinstance(rhs, str):
+                    rhs = rhs.replace('n', 'n1').replace('m', 'm1')
+                equ = sympy.Eq( sympy.sympify(lhs), sympy.sympify(rhs) )
+                eq_system.append(equ)
+            if gotonextt: continue
+            solution = sympy.solve(eq_system, ['n', 'm'])
+            if not eq_system or (solution and
+                                 not any(x in map(str, solution.keys())
+                                         for x in ['n1', 'm1'])):
+                if isinstance(t[-1], Variable) and t[-1].value == None:
+                    return t[-1]
+                else:
+                    ans = sympy.sympify(str(t[-1])).subs(solution)
+                    ans = str(ans).replace('n1', 'n').replace('m1', 'm')
+                    try: ans = int(ans)
+                    except: pass
+                    return Value(ans)
         if self.else_val != None:
             return self.else_val
         raise ArgError(args, self.name)
@@ -510,8 +506,6 @@ class Variable(object):
             raise Exception, 'Not implemented yet'
         
     __hash__ = None
-#     def __hash__(self):
-#         return self.__repr__().__hash__()
         
     def __deepcopy__(self, memo):
         newone = type(self)(self.value)
@@ -616,7 +610,7 @@ def powerset(iterable):
     return itertools.chain.from_iterable(itertools.combinations(s, r)
                                          for r in range(len(s)+1))
 
-def check_consistency(bun, llimit=3, ulimit=7):
+def check_consistency(bun, ulimit=7):
     '''
     Check consistency of function in bunny: for every input there should be not
     more than one result.
@@ -626,60 +620,67 @@ def check_consistency(bun, llimit=3, ulimit=7):
         for x in f.graph:
             if not x in f_graph:
                 f_graph.append(x)
-        # Check for simple duplicates
-        inputs = [x[:-1] for x in f_graph]
-        duplicates = set([tuple(map(str, input)) for input in inputs if inputs.count(input) > 1])
-        if duplicates:
-            for x in duplicates:
-                results = [str(z[-1]) for z in f_graph
-                           if tuple(map(str, z[:-1])) == x
-                           if z[-1].value != None] 
-                if len(set(results + [None])) > 2:
-                    return False
-        # check that the output varies only if the input varies
-        for row in f_graph:
-            if 'n' in str(row[-1]):
-                row_str = ''.join( map(str, row[:-1]) )
-                if not ('n' in row_str or 'Variable' in row_str):
-                    return False
-        # check that if the input varies and several outputs possible, all the outputs are equal    
-        var_syms = ['n', 'm']        
-        n_rows = [row for row in f_graph if any(x in ''.join(map(str, row[:-1]))
-                                                for x in var_syms)]
-        for n_row in n_rows:
-            f_row = PiecewiseFunc('', [n_row])
-            f_row.size = f.size
-            
-            local_vars = set([c for c in ''.join(map(str, n_row)) if c in var_syms])
-            evaluations = itertools.product( *[range(ulimit)]*len(local_vars) )
-            str_n_row = map(str, n_row[:-1])
-            for evaluation in evaluations:
-                subs = zip(local_vars, evaluation)
-                input = tuple(map(lambda x: eval(x, globals(), dict(subs)),
-                                  str_n_row))
-#                 if all(x <= f.size for x in input):
-#                     continue
-                try:
-                    orig = f(*input)
-                    new = f_row(*input)
-                except ArgError:
-                    continue
-                if (orig != new and 
-                    (type(orig) != Variable or orig.value != None) and 
-                    (type(new) != Variable or new.value != None)):
+        def checkf1(f_graph):
+            # Check for simple duplicates
+            inputs = [x[:-1] for x in f_graph]
+            duplicates = set([tuple(map(str, input)) for input in inputs if inputs.count(input) > 1])
+            if duplicates:
+                for x in duplicates:
+                    results = [str(z[-1]) for z in f_graph
+                               if tuple(map(str, z[:-1])) == x
+                               if z[-1].value != None] 
+                    if len(set(results + [None])) > 2:
                         return False
-        # check that there are bindings beyond kern_size, they comply with varying case        
-        for t in f_graph:
-            if any(x > f.size for x in t[:-1]):
-                try:
-                    f_out = f(*t[:-1])
-                except ArgError:
-                    pass
-                else:
-                    if t[-1] != f_out and (type(f_out) != Variable or
-                                           f_out.value != None):
+            return True
+        def checkf2(f_graph):
+            # check that the output varies only if the input varies
+            for row in f_graph:
+                if 'n' in str(row[-1]):
+                    row_str = ''.join( map(str, row[:-1]) )
+                    if not ('n' in row_str or 'Variable' in row_str):
                         return False
-        return True
+            return True
+        def checkf3(f_graph):
+            # check that if the input varies and several outputs possible, all the outputs are equal    
+            var_syms = ['n', 'm']
+            n_rows = [row for row in f_graph
+                      if not any(v.isunset() for v in row)
+                      if any(x in ''.join(map(str, row[:-1])) for x in var_syms)]
+            for n_row in n_rows:
+                f_row = PiecewiseFunc('', [n_row])
+                #f_row.size = f.size
+                
+                local_vars = set([c for c in ''.join(map(str, n_row)) if c in var_syms])
+                evaluations = itertools.product( *[range(f.size, f.size+3)]*len(local_vars) ) # important to start from f.size because f_row.size set to None
+                str_n_row = map(str, n_row[:-1])
+                for evaluation in evaluations:
+                    subs = zip(local_vars, evaluation)
+                    input = tuple(map(lambda x: eval(x, globals(), dict(subs)),
+                                      str_n_row))
+                    try:
+                        orig = f(*input)
+                        new = f_row(*input)
+                    except ArgError:
+                        continue
+                    if (orig != new and 
+                        (type(orig) != Variable or orig.value != None) and 
+                        (type(new) != Variable or new.value != None)):
+                            return False
+            return True
+        def checkf4(f_graph):
+            # check that there are bindings beyond kern_size, they comply with varying case        
+            for t in f_graph:
+                if any(x > f.size for x in t[:-1]):
+                    try:
+                        f_out = f(*t[:-1])
+                    except ArgError:
+                        pass
+                    else:
+                        if t[-1] != f_out and (type(f_out) != Variable or
+                                               f_out.value != None):
+                            return False
+            return True
+        return checkf1(f_graph) and checkf2(f_graph) and checkf3(f_graph) and checkf4(f_graph)
     
     return check_f(bun.funcs['f1']) and check_f(bun.funcs['f2'])
                 
@@ -774,26 +775,27 @@ def construct(imp, wait_time, kern_size=3):
             except IndexError:
                 var = def_vars.pop()
             consistent = None
+            try:
+                domain_it = domain_its[var.id]
+            except KeyError:
+                domain_it = get_domain(var)
+                domain_its[var.id] = domain_it
             while consistent != True:
                 try:
-                    domain_it = domain_its[var.id]
-                except KeyError:
-                    domain_it = get_domain(var)
-                    domain_its[var.id] = domain_it
-                try:
                     var.value = next(domain_it)
-                    consistent = check_consistency(bun, kern_size + 4)
+                    consistent = check_consistency(bun)
                 except StopIteration:
                     var.value = None
                     del domain_its[var.id]
                     undef_vars.append(var)
                     try:
                         var = def_vars.pop()
+                        domain_it = domain_its[var.id]
                     except IndexError:
                         raise StopIteration
             else:
                 try:
-                    neg_sat = all(bun.check_id(id_, limit=15) for id_ in ids_neg)
+                    neg_sat = all(bun.check_id(id_, limit=8) for id_ in ids_neg)
                 except ArgError:
                     neg_sat = False
                 if neg_sat:
@@ -818,8 +820,8 @@ def construct(imp, wait_time, kern_size=3):
         return iter(ans)
     
     Variable.clsreset()
-    bun = InfBunny(PiecewiseFunc('f2', [], size=kern_size-1),
-                   PiecewiseFunc('f1', [], size=kern_size-1),
+    bun = InfBunny(PiecewiseFunc('f2', [], size=kern_size),
+                   PiecewiseFunc('f1', [], size=kern_size),
                    Value(0))
     var_deps = dict()
     domain_dict = {'x': range(kern_size) + ["n+0"],
@@ -834,6 +836,7 @@ def construct(imp, wait_time, kern_size=3):
         
     domain_its = OrderedDict()
     ts = time.time()
+    print bun
     while True:
         # Check time constraint
         if time.time()-ts >= wait_time:
@@ -853,8 +856,9 @@ if __name__ == '__main__':
     
     imp_str = 'f0 = f1(f1(f0)), f0 = f1(f2(f0,f0)), x = f1(f2(x,y)), f0 = f2(f1(f0),f0), f1(f0) = f2(f0,x), x = x, x = f1(f2(x,f0)), f0 = f1(f2(f0,x)), x = f1(f2(x,x)), f1(f0) = f2(f0,f0) => f0 = f2(f1(f0),x)'
     imp_str = 'x = x, f0 = f1(f2(f0,f0)), f0 = f1(f2(x,x)), f0 = f1(f2(x,f0)), x = f1(f2(f0,x)), f0 = f1(f1(f0)), f0 = f2(f0,f1(f0)) => f1(f0) = f2(f0,f0)'
-    imp_str = 'x = x, f0 = f1(f2(f0,f0)), f0 = f1(f2(x,f0)), x = f1(f2(f0,x)), x = f2(x,f1(x)), x = f1(f2(y,x)), f0 = f1(f1(f0)), f0 = f2(x,f1(f0)), x = f1(f2(x,x)), f0 = f2(f0,f1(f0)) => f1(f0) = f2(f0,f0)'
-    imp_str = 'f0 = f1(f1(f0)), f0 = f1(f2(f0,f0)), x = f1(f2(x,y)), f0 = f2(f1(f0),f0), x = x, x = f1(f2(x,f0)), f0 = f1(f2(f0,x)), x = f1(f2(x,x)), x = f2(f1(x),x) => f1(f0) = f2(f0,f0)'
+    imp_str = 'x = x, x = f1(f2(x,y)) => x = f1(f2(x,f0)), x = f1(f2(x,x)), f0 = f1(f2(f0,f0)), f0 = f2(f1(f0),f0), f0 = f1(f2(f0,x))'
+    'f0 = f1(f1(f0)), x = x, f0 = f1(f2(f0,f0)), f0 = f1(f2(x,x)), f0 = f1(f2(x,f0)), x = f1(f2(f0,x)), f0 = f2(f0,f1(f0)) => f1(f0) = f2(f0,f0)'
+    imp_str = 'x = x, f0 = f1(f2(f0,f0)), x = f1(f2(x,y)), f0 = f2(f1(f0),f0), f0 = f2(f1(f0),x), f0 = f1(f1(f0)), x = f1(f2(x,f0)), f0 = f1(f2(f0,x)), x = f1(f2(x,x)), x = f2(f1(x),x) => f1(f0) = f2(f0,f0)'
     premise, conclusion = imp_str.split('=>')
     premise_ids = map(lambda x: x.strip(), premise.split(', '))
     conclusion_ids = map(lambda x: x.strip(), conclusion.split(', '))
@@ -862,10 +866,9 @@ if __name__ == '__main__':
     ids_neg = map(lambda x: identity.Identity.func_str2id(x), conclusion_ids)
     imp = fca.Implication(ids_pos, ids_neg)
     
-    ts = time.time()
-    ibun = InfBunny.find(imp, wait_time=1475, kern_size=2)[0]
-    print time.time() - ts
+    cProfile.run('ibun = InfBunny.find(imp, wait_time=15000, kern_size=3)[0]')
+    
     print [(str(id_), ibun.check_id(id_, 10, v=True)) for id_ in ids_neg]
     print [(str(id_), ibun.check_id(id_, 10, v=True)) for id_ in ids_pos]
-    assert not all(ibun.check_id(id_, 10) for id_ in ids_neg)
-    assert all(ibun.check_id(id_, 10) for id_ in ids_pos)
+#     assert not all(ibun.check_id(id_, 10) for id_ in ids_neg)
+#     assert all(ibun.check_id(id_, 10) for id_ in ids_pos)
