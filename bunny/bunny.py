@@ -653,17 +653,16 @@ def check_consistency(bun, ulimit=7):
                 #f_row.size = f.size
                 
                 local_vars = set([c for c in ''.join(map(str, n_row)) if c in var_syms])
-                evaluations = itertools.product( *[range(f.size, f.size+3)]*len(local_vars) ) # important to start from f.size because f_row.size set to None
+                evaluations = itertools.product( *[range(f.size, f.size+5)]*len(local_vars) ) # important to start from f.size because f_row.size set to None
                 str_n_row = map(str, n_row[:-1])
                 for evaluation in evaluations:
                     subs = zip(local_vars, evaluation)
                     input = tuple(map(lambda x: eval(x, globals(), dict(subs)),
                                       str_n_row))
-                    try:
-                        orig = f(*input)
-                        new = f_row(*input)
-                    except ArgError:
-                        continue
+                    if any(x < 0 for x in input): continue
+                    try: orig = f(*input)
+                    except: continue
+                    new = f_row(*input)
                     if (orig != new and 
                         (type(orig) != Variable or orig.value != None) and 
                         (type(new) != Variable or new.value != None)):
@@ -855,7 +854,7 @@ if __name__ == '__main__':
     
     import p9m4
     
-    imp_str = 'f0 = f2(f0,f0), x = x, f0 = f1(f2(f0,f0)), f0 = f1(f1(f1(f0))), x = f2(f1(x),f0), f1(f0) = f2(f0,f0), x = f2(x,f1(x)), f0 = f1(f0), f0 = f1(f1(f0)), f1(f0) = f1(f1(f0)), f0 = f2(f0,f1(f0)), f0 = f2(f1(f0),f0), x = f2(f0,f1(x)) => x = f1(f2(f0,x)), x = f1(f2(x,f0))'
+    imp_str = 'x = f1(f2(x,y)) => x = f1(f2(x,f0)), x = f1(f2(x,x)), f0 = f1(f2(f0,f0)), f0 = f2(f1(f0),f0), f0 = f1(f2(f0,x))'
     premise, conclusion = imp_str.split('=>')
     premise_ids = map(lambda x: x.strip(), premise.split(', '))
     conclusion_ids = map(lambda x: x.strip(), conclusion.split(', '))
@@ -863,7 +862,7 @@ if __name__ == '__main__':
     ids_neg = map(lambda x: identity.Identity.func_str2id(x), conclusion_ids)
     imp = fca.Implication(ids_pos, ids_neg)
     
-    ibun = InfBunny.find(imp, wait_time=15000, kern_size=2)[0]
+    ibun = InfBunny.find(imp, wait_time=15000, kern_size=1)[0]
     
     print [(str(id_), ibun.check_id(id_, 10, v=True)) for id_ in ids_neg]
     print [(str(id_), ibun.check_id(id_, 10, v=True)) for id_ in ids_pos]
