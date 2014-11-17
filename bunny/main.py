@@ -55,7 +55,7 @@ def ce_finder(imp, wait):
             premise = map(lambda x: identity.Identity.func_str2id(x), imp.premise)
             conclusion = map(lambda x: identity.Identity.func_str2id(x), imp.conclusion)
             id_imp = fca.Implication(premise, conclusion)
-            bun, reason = InfBunny.find(id_imp, wait, kern_size=4)
+            bun, reason = InfBunny.find(id_imp, wait, kern_size=3)
             ans = (bun, reason)
     return ans
 
@@ -67,6 +67,19 @@ def has_attribute(object_repr, attr_name):
         limit = 8
     return bun.check_id(id_, limit=limit)
 
+################################################################
+if __name__ == '__main__':        
+    
+    cxt = fca.read_cxt('../etc/current_cxt.cxt')
+    print 'context read'
+#     id_ls = read_ids('../utils/ids5.txt')
+#     cxt = init_cxt(2, id_ls)
+    ae_bunnies = ae.AE(dest, cxt, has_attribute, ce_finder)
+    step = raw_input('Input step number: ')
+    ae_bunnies.step = int(step)
+    ae_bunnies.run(10, 1)
+    
+
 ########MULTIPROCESSING
 import multiprocessing as mp
 import time
@@ -75,9 +88,7 @@ def f(l, i):
     l.acquire()
     print 'hello world', i
     l.release()
-
-################################################################
-if __name__ == '__main__':
+    
     ################################################
 #     lock = mp.Lock()
 # 
@@ -97,14 +108,6 @@ if __name__ == '__main__':
 #     print 'Is p1 alive? -', p1.is_alive()
 #     print p1.exitcode, p2.exitcode
     #################################################
-        
-#     id_ls = read_ids('../utils/ids5.txt')
-#     cxt = init_cxt(2, id_ls)
-    cxt = fca.read_cxt('../etc/current_cxt.cxt')
-    print 'context read'
-    ae_bunnies = ae.AE(dest, cxt, has_attribute, ce_finder)
-    ae_bunnies.step = 4174
-    ae_bunnies.run(300, 1)
 
 ######################Identities manually###########################
 ####SIZE = 2

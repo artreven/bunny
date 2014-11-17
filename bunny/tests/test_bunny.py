@@ -222,7 +222,6 @@ class TestBunny:
                                   b.funcs['f1'].dict,
                                   b.funcs['f0'], 3) == ind
 
-
 class TestInfBunny():
     
     def test_find101(self):

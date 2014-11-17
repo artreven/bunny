@@ -143,7 +143,7 @@ def bunnies(size):
     '''
     Create iterator over all finite bunnies on the domain of given size.
     '''
-    all_f = ((dict([[(i, j), (v2 / (size ** (size*i + j)) % size)]
+    all_f = ((dict([[(i, j), (v2 / (size ** (i + size*j)) % size)]
                      for i in range(size)
                      for j in range(size)]),
               
@@ -170,7 +170,7 @@ def show(index, size):
     v2 = index % (size ** (size**2))
     v1 = ((index - v2) / (size ** (size**2))) % (size ** size)
     v0 = ((index - v2 - v1) / (size ** (size**2 + size))) % (size ** (size**2))
-    f2_dict = dict([[(i, j), (v2 / (size ** (size*i + j)) % size)]
+    f2_dict = dict([[(i, j), (v2 / (size ** (i + size*j)) % size)]
                      for i in range(size)
                      for j in range(size)])
     f2 = _dict2f(f2_dict, 'f2')
@@ -188,7 +188,7 @@ def _index(f2_dict, f1_dict, f0_dict, size):
     v2 = 0
     for i in range(size):
         for j in range(size):
-            v2 += f2_dict[(j, i)] * size**(i + size*j)
+            v2 += f2_dict[(i, j)] * size**(i + size*j)
     #calc v1
     v1 = 0
     for i in range(size):
@@ -484,6 +484,8 @@ class Variable(object):
         if isinstance(other, Value):
             self.value = other.value
         elif isinstance(other, Variable):
+            for var in filter(lambda v: v.id == self.id, Variable._registry):
+                var.id = other.id
             self.id = other.id
         elif isinstance(other, int) or isinstance(other, str):
             self.value = other
@@ -836,7 +838,6 @@ def construct(imp, wait_time, kern_size=3):
         
     domain_its = OrderedDict()
     ts = time.time()
-    print bun
     while True:
         # Check time constraint
         if time.time()-ts >= wait_time:
@@ -854,11 +855,7 @@ if __name__ == '__main__':
     
     import p9m4
     
-    imp_str = 'f0 = f1(f1(f0)), f0 = f1(f2(f0,f0)), x = f1(f2(x,y)), f0 = f2(f1(f0),f0), f1(f0) = f2(f0,x), x = x, x = f1(f2(x,f0)), f0 = f1(f2(f0,x)), x = f1(f2(x,x)), f1(f0) = f2(f0,f0) => f0 = f2(f1(f0),x)'
-    imp_str = 'x = x, f0 = f1(f2(f0,f0)), f0 = f1(f2(x,x)), f0 = f1(f2(x,f0)), x = f1(f2(f0,x)), f0 = f1(f1(f0)), f0 = f2(f0,f1(f0)) => f1(f0) = f2(f0,f0)'
-    imp_str = 'x = x, x = f1(f2(x,y)) => x = f1(f2(x,f0)), x = f1(f2(x,x)), f0 = f1(f2(f0,f0)), f0 = f2(f1(f0),f0), f0 = f1(f2(f0,x))'
-    'f0 = f1(f1(f0)), x = x, f0 = f1(f2(f0,f0)), f0 = f1(f2(x,x)), f0 = f1(f2(x,f0)), x = f1(f2(f0,x)), f0 = f2(f0,f1(f0)) => f1(f0) = f2(f0,f0)'
-    imp_str = 'x = x, f0 = f1(f2(f0,f0)), x = f1(f2(x,y)), f0 = f2(f1(f0),f0), f0 = f2(f1(f0),x), f0 = f1(f1(f0)), x = f1(f2(x,f0)), f0 = f1(f2(f0,x)), x = f1(f2(x,x)), x = f2(f1(x),x) => f1(f0) = f2(f0,f0)'
+    imp_str = 'f0 = f2(f0,f0), x = x, f0 = f1(f2(f0,f0)), f0 = f1(f1(f1(f0))), x = f2(f1(x),f0), f1(f0) = f2(f0,f0), x = f2(x,f1(x)), f0 = f1(f0), f0 = f1(f1(f0)), f1(f0) = f1(f1(f0)), f0 = f2(f0,f1(f0)), f0 = f2(f1(f0),f0), x = f2(f0,f1(x)) => x = f1(f2(f0,x)), x = f1(f2(x,f0))'
     premise, conclusion = imp_str.split('=>')
     premise_ids = map(lambda x: x.strip(), premise.split(', '))
     conclusion_ids = map(lambda x: x.strip(), conclusion.split(', '))
@@ -866,7 +863,7 @@ if __name__ == '__main__':
     ids_neg = map(lambda x: identity.Identity.func_str2id(x), conclusion_ids)
     imp = fca.Implication(ids_pos, ids_neg)
     
-    cProfile.run('ibun = InfBunny.find(imp, wait_time=15000, kern_size=3)[0]')
+    ibun = InfBunny.find(imp, wait_time=15000, kern_size=2)[0]
     
     print [(str(id_), ibun.check_id(id_, 10, v=True)) for id_ in ids_neg]
     print [(str(id_), ibun.check_id(id_, 10, v=True)) for id_ in ids_pos]

@@ -142,7 +142,7 @@ def read_model(path):
         count = 0
         for i in wstr:
             if i.isdigit():
-                B[count%Dom, count/Dom] = int(i)
+                B[count/Dom, count%Dom] = int(i)
                 count += 1
         # Calculating Numj
         for i in range(Dom):
