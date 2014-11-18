@@ -379,10 +379,10 @@ class PiecewiseFunc(object):
                         break
                     else:
                         continue
-                if (isinstance(lhs, int) and rhs != lhs):
+                if isinstance(lhs, int) and rhs != lhs:
                     gotonextt = True
                     break
-                elif lhs == rhs:
+                elif isinstance(lhs, int) and lhs == rhs:
                     continue
                 if isinstance(rhs, str):
                     rhs = rhs.replace('n', 'n1').replace('m', 'm1')
@@ -854,7 +854,7 @@ if __name__ == '__main__':
     
     import p9m4
     
-    imp_str = 'x = f1(f2(x,y)) => x = f1(f2(x,f0)), x = f1(f2(x,x)), f0 = f1(f2(f0,f0)), f0 = f2(f1(f0),f0), f0 = f1(f2(f0,x))'
+    imp_str = 'f0 = f2(f0,f0), f0 = f1(f1(f0)), f0 = f1(f2(f0,f0)), f0 = f1(f2(x,x)), f0 = f1(f1(f1(f0))), x = f1(f2(f0,x)), f1(f0) = f2(f0,f0), x = f2(x,f1(x)), f0 = f2(x,x), f0 = f1(f0), x = x, f1(f0) = f1(f1(f0)), x = f2(f1(x),x), x = f2(x,f1(f0)), f1(f0) = f2(x,x), f0 = f2(f0,f1(f0)), x = f2(x,f0), f0 = f2(f1(f0),f0) => x = f2(f0,f1(x))'
     premise, conclusion = imp_str.split('=>')
     premise_ids = map(lambda x: x.strip(), premise.split(', '))
     conclusion_ids = map(lambda x: x.strip(), conclusion.split(', '))
@@ -862,7 +862,24 @@ if __name__ == '__main__':
     ids_neg = map(lambda x: identity.Identity.func_str2id(x), conclusion_ids)
     imp = fca.Implication(ids_pos, ids_neg)
     
-    ibun = InfBunny.find(imp, wait_time=15000, kern_size=1)[0]
+    ibun = InfBunny.find(imp, wait_time=15000, kern_size=2)[0]
+    print [(str(id_), ibun.check_id(id_, 10, v=True)) for id_ in ids_neg]
+    print [(str(id_), ibun.check_id(id_, 10, v=True)) for id_ in ids_pos]
+    
+    ###############################################
+    
+    imp_str = 'f0 = f2(f0,f0), f0 = f2(f0,x), f0 = f2(x,x), f0 = f2(f0,f1(f0)), f0 = f2(f0,f1(x)), f0 = f2(f1(f0),f0), f0 = f2(x,f1(f0)), f0 = f2(f1(x),f0), f0 = f2(f1(x),x), x = f2(x,f1(x)) => f1(f0) = f2(f0,f0)'
+    premise, conclusion = imp_str.split('=>')
+    premise_ids = map(lambda x: x.strip(), premise.split(', '))
+    conclusion_ids = map(lambda x: x.strip(), conclusion.split(', '))
+    ids_pos = map(lambda x: identity.Identity.func_str2id(x), premise_ids)
+    ids_neg = map(lambda x: identity.Identity.func_str2id(x), conclusion_ids)
+    imp = fca.Implication(ids_pos, ids_neg)
+    
+    fbun = p9m4.mace4(imp, 'ce')[0]
+    print fbun
+    
+    ibun = InfBunny.find(imp, wait_time=15000, kern_size=3)[0]
     
     print [(str(id_), ibun.check_id(id_, 10, v=True)) for id_ in ids_neg]
     print [(str(id_), ibun.check_id(id_, 10, v=True)) for id_ in ids_pos]
