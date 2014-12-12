@@ -69,15 +69,16 @@ def has_attribute(object_repr, attr_name):
 
 ################################################################
 if __name__ == '__main__':        
+    import xdot
     
-    cxt = fca.read_cxt('../etc/current_cxt.cxt')
-    print 'context read'
-#     id_ls = read_ids('../utils/ids5.txt')
-#     cxt = init_cxt(2, id_ls)
+#     cxt = fca.read_cxt('../etc/current_cxt.cxt')
+#     print 'context read'
+    id_ls = read_ids('../utils/ids5plus.txt')
+    cxt = init_cxt(2, id_ls)
     ae_bunnies = ae.AE(dest, cxt, has_attribute, ce_finder)
-    step = raw_input('Input step number: ')
-    ae_bunnies.step = int(step)
-    ae_bunnies.run(10, 1)
+#     step = raw_input('Input step number: ')
+#     ae_bunnies.step = int(step)
+    ae_bunnies.run(100, 1)
     
 
 ########MULTIPROCESSING

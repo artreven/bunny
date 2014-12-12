@@ -837,6 +837,7 @@ def construct(imp, wait_time, kern_size=3):
         
     domain_its = OrderedDict()
     ts = time.time()
+    print bun
     while True:
         # Check time constraint
         if time.time()-ts >= wait_time:
@@ -854,7 +855,7 @@ if __name__ == '__main__':
     
     import p9m4
     
-    imp_str = 'f0 = f2(f0,f0), f0 = f1(f1(f0)), f0 = f1(f2(f0,f0)), f0 = f1(f2(x,x)), f0 = f1(f1(f1(f0))), x = f1(f2(f0,x)), f1(f0) = f2(f0,f0), x = f2(x,f1(x)), f0 = f2(x,x), f0 = f1(f0), x = x, f1(f0) = f1(f1(f0)), x = f2(f1(x),x), x = f2(x,f1(f0)), f1(f0) = f2(x,x), f0 = f2(f0,f1(f0)), x = f2(x,f0), f0 = f2(f1(f0),f0) => x = f2(f0,f1(x))'
+    imp_str = 'f0 = f2(f0,f0), x = x, f0 = f1(f2(f0,f0)), f0 = f1(f2(x,x)), f0 = f1(f1(f1(f0))), x = f2(f1(x),f0), f1(f0) = f2(f0,f0), x = f2(x,f1(x)), f0 = f2(x,x), f0 = f1(f0), f0 = f1(f1(f0)), f1(x) = f2(f0,x), f1(f0) = f1(f1(f0)), x = f2(f1(x),x), f1(f0) = f2(x,x), f0 = f2(f0,f1(f0)), f0 = f2(f1(f0),f0) => x = f1(f2(x,f0))'
     premise, conclusion = imp_str.split('=>')
     premise_ids = map(lambda x: x.strip(), premise.split(', '))
     conclusion_ids = map(lambda x: x.strip(), conclusion.split(', '))
