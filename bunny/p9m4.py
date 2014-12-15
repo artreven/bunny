@@ -4,6 +4,7 @@ Holds functions for running Prover9 and Mace4 with some input.
 import subprocess
 import os
 import shutil
+import rfoo
 
 import fca
 
@@ -40,22 +41,24 @@ def mace4(imp, file_path, wait_time=1):
     call_str += file_name + ' > ' + output
     ce = None
     reason = None
+#     with open(os.devnull, "w") as fnull:
+#         output_code = subprocess.call(call_str, shell=True, stdout=fnull, stderr=fnull)
     # Process output codes in to reasons
-    with open(os.devnull, "w") as fnull:
-        output_code = subprocess.call(call_str, shell=True, stdout=fnull, stderr=fnull) 
-        if output_code == 2:
-            # not found
-            reason = 'Search complete with no models'
-            os.remove(output)
-        elif output_code == 5:
-            # not found
-            reason = 'Timeout'
-            os.remove(output)
-        elif output_code == 0:
-            # found 
-            ce = read_model(output)
-        else:
-            raise Exception, 'Unexpected output code {0} from Mace4'.format(output_code)
+    c = rfoo.UnixConnection().connect('P9M4')
+    output_code = rfoo.Proxy(c).RPopen(call_str)
+    if output_code == 2:
+        # not found
+        reason = 'Search complete with no models'
+        os.remove(output)
+    elif output_code == 5:
+        # not found
+        reason = 'Timeout'
+        os.remove(output)
+    elif output_code == 0:
+        # found 
+        ce = read_model(output)
+    else:
+        raise Exception, 'Unexpected output code {0} from Mace4'.format(output_code)
     os.remove(file_name)
     return (ce, reason)
 
@@ -88,16 +91,18 @@ def prover9(imp, file_path, wait_time=1):
     output = (file_path + r'.prover9.out')
     call_str = 'prover9 -t {0} -f '.format(wait_time)
     call_str += file_name + ' > ' + output
-    with open(os.devnull, "w") as fnull:
-        # Process output codes in to reasons
-        output_code = subprocess.call(call_str, shell=True, stdout=fnull, stderr=fnull)
-        if output_code != 0:
-            # not proved
-            os.remove(output)
-            proved = False
-        else:
-            # proved
-            proved = True
+    #with open(os.devnull, "w") as fnull:
+        #output_code = subprocess.call(call_str, shell=True, stdout=fnull, stderr=fnull)
+    # Process output codes in to reasons
+    c = rfoo.UnixConnection().connect('P9M4')
+    output_code = rfoo.Proxy(c).RPopen(call_str)
+    if output_code != 0:
+        # not proved
+        os.remove(output)
+        proved = False
+    else:
+        # proved
+        proved = True
     os.remove(file_name)
     return proved
 

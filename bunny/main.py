@@ -68,12 +68,11 @@ def has_attribute(object_repr, attr_name):
     return bun.check_id(id_, limit=limit)
 
 ################################################################
-if __name__ == '__main__':        
-    import xdot
+if __name__ == '__main__':
     
 #     cxt = fca.read_cxt('../etc/current_cxt.cxt')
 #     print 'context read'
-    id_ls = read_ids('../utils/ids5plus.txt')
+    id_ls = read_ids('../utils/ids4.txt')
     cxt = init_cxt(2, id_ls)
     ae_bunnies = ae.AE(dest, cxt, has_attribute, ce_finder)
 #     step = raw_input('Input step number: ')
