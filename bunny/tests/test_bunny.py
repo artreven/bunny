@@ -384,7 +384,7 @@ class TestInfBunny():
         imp = fca.Implication(ids_pos, ids_neg)
         # G_3 from Kestler's thesis
 
-        bun = bunny.bunny.InfBunny.find(imp, wait_time=15, kern_size=2)[0]
+        bun = bunny.bunny.InfBunny.find(imp, wait_time=15, kern_size=3)[0]
         assert bun != None
         
     def test_find300(self):

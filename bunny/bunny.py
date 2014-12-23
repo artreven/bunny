@@ -661,7 +661,7 @@ def check_consistency(bun, ulimit=7):
                                       str_n_row))
                     if any(x < 0 for x in input): continue
                     try: orig = f(*input)
-                    except: continue
+                    except: return False #continue
                     new = f_row(*input)
                     if (orig != new and 
                         (type(orig) != Variable or orig.value != None) and 
@@ -686,8 +686,9 @@ def check_consistency(bun, ulimit=7):
     return check_f(bun.funcs['f1']) and check_f(bun.funcs['f2'])
                 
 def violates_ids(bun, ids):
+    # TODO: refactor, check consistency before return
     bun_copy = deepcopy(bun)
-    kern_size = bun.funcs['f2'].size + 1
+    kern_size = bun.funcs['f2'].size
     it_dict = OrderedDict()
     if not ids:
         if bun.funcs['f2'].else_val == None:
@@ -837,12 +838,12 @@ def construct(imp, wait_time, kern_size=3):
         
     domain_its = OrderedDict()
     ts = time.time()
-    print bun
     while True:
         # Check time constraint
         if time.time()-ts >= wait_time:
             raise TimeoutError
         fetch_next(bun, undef_vars, def_vars, get_domain, imp.conclusion)
+        print bun
         if violates_ids(bun, imp.conclusion):
             return bun
 
@@ -857,7 +858,65 @@ if __name__ == '__main__':
     
     ###############################################
     
-    imp_str = 'x = x, x = f1(f2(x,y)), f1(f0) = f1(f1(f1(f0))), f1(x) = f1(f1(f1(x))) => x = f2(f1(x),y), f1(x) = f2(x,f1(x)), f1(f0) = f2(f0,f1(f0)), f1(f0) = f2(f0,f1(x)), x = f2(f1(x),f1(f0)), x = f2(f1(x),f1(x)), x = f1(f1(x)), f1(x) = f2(x,y), f1(f0) = f2(f0,x), x = f2(f1(x),x), f1(x) = f2(x,f0), f1(x) = f2(x,f1(f0)), f1(x) = f2(x,f1(y)), f0 = f2(f1(f0),x), x = f2(f1(x),f0), x = f2(f1(x),f1(y)), f1(f0) = f2(f0,f0)'#, f0 = f1(f2(f0,x)), f0 = f1(f1(f1(f1(f0)))), x = f1(f2(x,f0)), x = f1(f2(x,f1(y))), x = f1(f2(x,x)), f1(x) = f2(x,x)'
+    bun_str = '''    INFINITE BUNNY
+f2:
+    f2(0, 0):= 0
+    f2(0, 1):= 1
+    f2(0, 2):= 2
+    f2(0, n+0):= n+2
+    f2(1, 0):= 0
+    f2(3, 0):= 0
+    f2(n-1, 0):= 0
+    f2(else):= 1
+f1:
+    f1(0,):= 0
+    f1(1,):= 1
+    f1(2,):= 3
+    f1(3,):= 2
+    f1(n+0,):= n-1
+    f1(n+1,):= n+0
+    f1(n+2,):= n+1
+    f1(else):= 0
+f0:
+    0'''
+    
+#     bun = InfBunny.read(bun_str)
+#     print bun
+#     bun.funcs["f2"].else_val = None
+#     bun.funcs["f2"].size = 3
+#     bun.funcs["f1"].else_val = None
+#     bun.funcs["f1"].size = 3
+#     #print check_consistency(bun)
+    #print 'f2(f1(3), 0) = ', (bun.funcs["f2"](bun.funcs["f1"](3), 0)), '\tf2(2, 0) = ', (bun.funcs["f2"](2, 0))
+#     print 'f1(f2(f1(3),f0)) = ', bun.funcs["f1"](bun.funcs["f2"](bun.funcs["f1"](3), 0))
+    
+    """
+f1:
+    f1(0,):= 0
+    f1(1,):= 1
+    f1(2,):= 3
+    f1(3,):= 2
+    f1(n+0,):= n-1
+    f1(n+1,):= n+0
+    f1(n+2,):= n+1
+
+True
+f2:
+    f2(0, 0):= 0
+    f2(0, 1):= 1
+    f2(0, 2):= 2
+    f2(0, n+0):= n+2
+    f2(1, 0):= 0
+    f2(3, 0):= 0
+    f2(n-1, 0):= 0
+
+True
+
+[('f1(f0) = f2(f1(x),f0)', (False, {'x': 3}, 0, 1)), ('f0 = f2(f1(f1(x)),f0)', (False, {'x': 2}, 0, 1)), ('f0 = f1(f2(x,f0))', (False, {'x': 2}, 0, 1)), ('f0 = f2(f1(x),f1(f0))', (False, {'x': 3}, 0, 1)), ('f0 = f2(x,f0)', (False, {'x': 2}, 0, 1)), ('f0 = f1(f2(x,f1(f0)))', (False, {'x': 2}, 0, 1)), ('f0 = f2(x,f1(f1(f0)))', (False, {'x': 2}, 0, 1)), ('f0 = f2(f1(x),f0)', (False, {'x': 3}, 0, 1)), ('f1(f0) = f2(x,f0)', (False, {'x': 2}, 0, 1)), ('f1(f0) = f2(x,f1(f0))', (False, {'x': 2}, 0, 1)), ('f1(f0) = f1(f2(x,f0))', (False, {'x': 2}, 0, 1)), ('f0 = f1(f1(f2(x,f0)))', (False, {'x': 2}, 0, 1)), ('f2(x,f0) = f1(f1(f0))', (False, {'x': 2}, 1, 0)), ('f0 = f2(x,f1(f0))', (False, {'x': 2}, 0, 1))]
+[('f0 = f1(f1(f1(f0)))', True), ('f0 = f1(f0)', True), ('f0 = f1(f1(f0))', True), ('f0 = f1(f1(f2(f0,f0)))', True), ('f0 = f2(f1(f0),f1(f0))', True), ('f0 = f2(f0,f1(f0))', True), ('f0 = f1(f2(f0,f0))', True), ('f0 = f2(f1(f0),f0)', True), ('f1(f1(f0)) = f2(f0,f0)', True), ('f1(f0) = f1(f1(f0))', True), ('f1(f0) = f1(f1(f1(f0)))', True), ('f0 = f1(f2(f1(f0),f0))', True), ('f0 = f1(f2(f0,f1(f0)))', True), ('f0 = f2(f0,f0)', True), ('f1(f0) = f2(f1(f0),f0)', True), ('f1(f0) = f2(f0,f0)', True), ('f0 = f1(f1(f1(f1(f0))))', True), ('x = x', True), ('f1(f0) = f2(f0,f1(f0))', True), ('x = f1(f1(f2(f0,x)))', True), ('f1(f0) = f1(f2(f0,f0))', True), ('f0 = f1(f2(f1(x),f0))', (False, {'x': 3}, 0, 1)), ('f0 = f2(f1(f1(f0)),f0)', True), ('f0 = f2(f0,f1(f1(f0)))', True)]
+    """
+    
+    imp_str = '''f0 = f1(f1(f1(f0))), f0 = f1(f0), f0 = f1(f1(f0)), f0 = f1(f1(f2(f0,f0))), f0 = f2(f1(f0),f1(f0)), f0 = f2(f0,f1(f0)), f0 = f1(f2(f0,f0)), f0 = f2(f1(f0),f0), f1(f0) = f2(f1(f0),f0), f1(f0) = f1(f1(f0)), f1(f0) = f1(f1(f1(f0))), f0 = f1(f2(f1(f0),f0)), f0 = f1(f2(f0,f1(f0))), f0 = f2(f0,f0), f1(f1(f0)) = f2(f0,f0), f1(f0) = f2(f0,f0), f0 = f1(f1(f1(f1(f0)))), x = x, f1(f0) = f2(f0,f1(f0)), x = f1(f1(f2(f0,x))), f1(f0) = f1(f2(f0,f0)), f0 = f1(f2(f1(x),f0)), f0 = f2(f1(f1(f0)),f0), f0 = f2(f0,f1(f1(f0))) => f1(f0) = f2(f1(x),f0), f0 = f2(f1(f1(x)),f0), f0 = f1(f2(x,f0)), f0 = f2(f1(x),f1(f0)), f0 = f2(x,f0), f0 = f1(f2(x,f1(f0))), f0 = f2(x,f1(f1(f0))), f0 = f2(f1(x),f0), f1(f0) = f2(x,f0), f1(f0) = f2(x,f1(f0)), f1(f0) = f1(f2(x,f0)), f0 = f1(f1(f2(x,f0))), f2(x,f0) = f1(f1(f0)), f0 = f2(x,f1(f0))'''
     premise, conclusion = imp_str.split('=>')
     premise_ids = map(lambda x: x.strip(), premise.split(', '))
     conclusion_ids = map(lambda x: x.strip(), conclusion.split(', '))
@@ -865,11 +924,11 @@ if __name__ == '__main__':
     ids_neg = map(lambda x: identity.Identity.func_str2id(x), conclusion_ids)
     imp = fca.Implication(ids_pos, ids_neg)
     
-    fbun = p9m4.prover9(imp, 'ce')
-    print fbun
-    assert 0
+    #fbun = p9m4.prover9(imp, 'ce')
+    #print fbun
+    #assert 0
     
-    ibun = InfBunny.find(imp, wait_time=15000, kern_size=3)[0]
+    ibun = InfBunny.find(imp, wait_time=15000, kern_size=5)[0]
     
     print [(str(id_), ibun.check_id(id_, 10, v=True)) for id_ in ids_neg]
     print [(str(id_), ibun.check_id(id_, 10, v=True)) for id_ in ids_pos]
