@@ -223,6 +223,7 @@ class InfBunny(Bunny):
         Constructor
         '''
         super(InfBunny, self).__init__(f2, f1, f0, 'N/A', 'Inf')
+        self.kern_size = None
         
     def __deepcopy__(self, memo):
         newone = type(self)(None, None, None)
@@ -617,7 +618,7 @@ def check_consistency(bun, ulimit=7):
     Check consistency of function in bunny: for every input there should be not
     more than one result.
     '''
-    def check_f(f):
+    def check_f(f, kern_size=bun.kern_size):
         f_graph = []
         for x in f.graph:
             if not x in f_graph:
@@ -653,7 +654,7 @@ def check_consistency(bun, ulimit=7):
                 #f_row.size = f.size
                 
                 local_vars = set([c for c in ''.join(map(str, n_row)) if c in var_syms])
-                evaluations = itertools.product( *[range(f.size, f.size+5)]*len(local_vars) ) # important to start from f.size because f_row.size set to None
+                evaluations = itertools.product( *[range(kern_size, kern_size+5)]*len(local_vars) ) # important to start from f.size because f_row.size set to None
                 str_n_row = map(str, n_row[:-1])
                 for evaluation in evaluations:
                     subs = zip(local_vars, evaluation)
@@ -671,7 +672,7 @@ def check_consistency(bun, ulimit=7):
         def checkf4(f_graph):
             # check that there are bindings beyond kern_size, they comply with varying case        
             for t in f_graph:
-                if any(x > f.size for x in t[:-1]):
+                if any(x > kern_size for x in t[:-1]):
                     try:
                         f_out = f(*t[:-1])
                     except ArgError:
@@ -688,7 +689,7 @@ def check_consistency(bun, ulimit=7):
 def violates_ids(bun, ids):
     # TODO: refactor, check consistency before return
     bun_copy = deepcopy(bun)
-    kern_size = bun.funcs['f2'].size
+    kern_size = bun.kern_size
     it_dict = OrderedDict()
     if not ids:
         if bun.funcs['f2'].else_val == None:
@@ -811,7 +812,7 @@ def construct(imp, wait_time, kern_size=3):
     def get_domain(var):
         assert isinstance(var, Variable)
         dep_vars = var_deps[var.id]
-        ans = range(kern_size + 2)
+        ans = range(kern_size + 3)
         var_syms = {c for c in ['n', 'm'] if c in ''.join(map(str, dep_vars))}
         if 'n' in var_syms:
             ans += ['n{:+}'.format(i) for i in range(-2, 3)]
@@ -825,12 +826,16 @@ def construct(imp, wait_time, kern_size=3):
     bun = InfBunny(PiecewiseFunc('f2', [], size=kern_size),
                    PiecewiseFunc('f1', [], size=kern_size),
                    Value(0))
+    bun.kern_size = kern_size
     var_deps = dict()
     domain_dict = {'x': range(kern_size) + ["n+0"],
                    'y': range(kern_size) + ["m+0"],
                    'z': range(kern_size) + ["h+0"]}
     for id_ in imp.premise:
         impose_bindings(bun, id_, domain_dict, var_deps)
+    ###Experimental!!
+    bun.funcs['f1'].size = bun.funcs['f2'].size = 0
+    ###
     def_vars = []; undef_vars = []
     for var in Variable._registry:
         if var.value == None and not var in undef_vars:
@@ -843,7 +848,6 @@ def construct(imp, wait_time, kern_size=3):
         if time.time()-ts >= wait_time:
             raise TimeoutError
         fetch_next(bun, undef_vars, def_vars, get_domain, imp.conclusion)
-        print bun
         if violates_ids(bun, imp.conclusion):
             return bun
 
@@ -858,65 +862,33 @@ if __name__ == '__main__':
     
     ###############################################
     
-    bun_str = '''    INFINITE BUNNY
+    bun_str = '''        INFINITE BUNNY
 f2:
     f2(0, 0):= 0
-    f2(0, 1):= 1
-    f2(0, 2):= 2
+    f2(0, 1):= 3
     f2(0, n+0):= n+2
-    f2(1, 0):= 0
-    f2(3, 0):= 0
-    f2(n-1, 0):= 0
-    f2(else):= 1
+    f2(n-1, 0):= 1
 f1:
     f1(0,):= 0
-    f1(1,):= 1
-    f1(2,):= 3
+    f1(1,):= 0
+    f1(2,):= 1
     f1(3,):= 2
     f1(n+0,):= n-1
     f1(n+1,):= n+0
     f1(n+2,):= n+1
-    f1(else):= 0
 f0:
     0'''
     
-#     bun = InfBunny.read(bun_str)
-#     print bun
-#     bun.funcs["f2"].else_val = None
-#     bun.funcs["f2"].size = 3
-#     bun.funcs["f1"].else_val = None
-#     bun.funcs["f1"].size = 3
-#     #print check_consistency(bun)
-    #print 'f2(f1(3), 0) = ', (bun.funcs["f2"](bun.funcs["f1"](3), 0)), '\tf2(2, 0) = ', (bun.funcs["f2"](2, 0))
-#     print 'f1(f2(f1(3),f0)) = ', bun.funcs["f1"](bun.funcs["f2"](bun.funcs["f1"](3), 0))
+    bun = InfBunny.read(bun_str)
+    print bun
+    bun.funcs["f2"].size = 0
+    bun.funcs["f1"].size = 0
+    bun.kern_size = 2
+    print check_consistency(bun)
+    assert check_consistency(bun)
     
-    """
-f1:
-    f1(0,):= 0
-    f1(1,):= 1
-    f1(2,):= 3
-    f1(3,):= 2
-    f1(n+0,):= n-1
-    f1(n+1,):= n+0
-    f1(n+2,):= n+1
-
-True
-f2:
-    f2(0, 0):= 0
-    f2(0, 1):= 1
-    f2(0, 2):= 2
-    f2(0, n+0):= n+2
-    f2(1, 0):= 0
-    f2(3, 0):= 0
-    f2(n-1, 0):= 0
-
-True
-
-[('f1(f0) = f2(f1(x),f0)', (False, {'x': 3}, 0, 1)), ('f0 = f2(f1(f1(x)),f0)', (False, {'x': 2}, 0, 1)), ('f0 = f1(f2(x,f0))', (False, {'x': 2}, 0, 1)), ('f0 = f2(f1(x),f1(f0))', (False, {'x': 3}, 0, 1)), ('f0 = f2(x,f0)', (False, {'x': 2}, 0, 1)), ('f0 = f1(f2(x,f1(f0)))', (False, {'x': 2}, 0, 1)), ('f0 = f2(x,f1(f1(f0)))', (False, {'x': 2}, 0, 1)), ('f0 = f2(f1(x),f0)', (False, {'x': 3}, 0, 1)), ('f1(f0) = f2(x,f0)', (False, {'x': 2}, 0, 1)), ('f1(f0) = f2(x,f1(f0))', (False, {'x': 2}, 0, 1)), ('f1(f0) = f1(f2(x,f0))', (False, {'x': 2}, 0, 1)), ('f0 = f1(f1(f2(x,f0)))', (False, {'x': 2}, 0, 1)), ('f2(x,f0) = f1(f1(f0))', (False, {'x': 2}, 1, 0)), ('f0 = f2(x,f1(f0))', (False, {'x': 2}, 0, 1))]
-[('f0 = f1(f1(f1(f0)))', True), ('f0 = f1(f0)', True), ('f0 = f1(f1(f0))', True), ('f0 = f1(f1(f2(f0,f0)))', True), ('f0 = f2(f1(f0),f1(f0))', True), ('f0 = f2(f0,f1(f0))', True), ('f0 = f1(f2(f0,f0))', True), ('f0 = f2(f1(f0),f0)', True), ('f1(f1(f0)) = f2(f0,f0)', True), ('f1(f0) = f1(f1(f0))', True), ('f1(f0) = f1(f1(f1(f0)))', True), ('f0 = f1(f2(f1(f0),f0))', True), ('f0 = f1(f2(f0,f1(f0)))', True), ('f0 = f2(f0,f0)', True), ('f1(f0) = f2(f1(f0),f0)', True), ('f1(f0) = f2(f0,f0)', True), ('f0 = f1(f1(f1(f1(f0))))', True), ('x = x', True), ('f1(f0) = f2(f0,f1(f0))', True), ('x = f1(f1(f2(f0,x)))', True), ('f1(f0) = f1(f2(f0,f0))', True), ('f0 = f1(f2(f1(x),f0))', (False, {'x': 3}, 0, 1)), ('f0 = f2(f1(f1(f0)),f0)', True), ('f0 = f2(f0,f1(f1(f0)))', True)]
-    """
-    
-    imp_str = '''f0 = f1(f1(f1(f0))), f0 = f1(f0), f0 = f1(f1(f0)), f0 = f1(f1(f2(f0,f0))), f0 = f2(f1(f0),f1(f0)), f0 = f2(f0,f1(f0)), f0 = f1(f2(f0,f0)), f0 = f2(f1(f0),f0), f1(f0) = f2(f1(f0),f0), f1(f0) = f1(f1(f0)), f1(f0) = f1(f1(f1(f0))), f0 = f1(f2(f1(f0),f0)), f0 = f1(f2(f0,f1(f0))), f0 = f2(f0,f0), f1(f1(f0)) = f2(f0,f0), f1(f0) = f2(f0,f0), f0 = f1(f1(f1(f1(f0)))), x = x, f1(f0) = f2(f0,f1(f0)), x = f1(f1(f2(f0,x))), f1(f0) = f1(f2(f0,f0)), f0 = f1(f2(f1(x),f0)), f0 = f2(f1(f1(f0)),f0), f0 = f2(f0,f1(f1(f0))) => f1(f0) = f2(f1(x),f0), f0 = f2(f1(f1(x)),f0), f0 = f1(f2(x,f0)), f0 = f2(f1(x),f1(f0)), f0 = f2(x,f0), f0 = f1(f2(x,f1(f0))), f0 = f2(x,f1(f1(f0))), f0 = f2(f1(x),f0), f1(f0) = f2(x,f0), f1(f0) = f2(x,f1(f0)), f1(f0) = f1(f2(x,f0)), f0 = f1(f1(f2(x,f0))), f2(x,f0) = f1(f1(f0)), f0 = f2(x,f1(f0))'''
+    imp_str = '''f0 = f1(f0), f0 = f2(f0,f0), x = f1(f1(f2(f0,x))), f0 = f1(f2(f1(x),f0)) => f1(f0) = f2(f1(x),f0)'''
+    #, f0 = f2(f1(f1(x)),f0), f0 = f1(f2(x,f0)), f0 = f2(f1(x),f1(f0)), f0 = f2(x,f0), f0 = f1(f2(x,f1(f0))), f0 = f2(x,f1(f1(f0))), f0 = f2(f1(x),f0), f1(f0) = f2(x,f0), f1(f0) = f2(x,f1(f0)), f1(f0) = f1(f2(x,f0)), f0 = f1(f1(f2(x,f0))), f2(x,f0) = f1(f1(f0)), f0 = f2(x,f1(f0))'''
     premise, conclusion = imp_str.split('=>')
     premise_ids = map(lambda x: x.strip(), premise.split(', '))
     conclusion_ids = map(lambda x: x.strip(), conclusion.split(', '))
@@ -924,11 +896,7 @@ True
     ids_neg = map(lambda x: identity.Identity.func_str2id(x), conclusion_ids)
     imp = fca.Implication(ids_pos, ids_neg)
     
-    #fbun = p9m4.prover9(imp, 'ce')
-    #print fbun
-    #assert 0
-    
-    ibun = InfBunny.find(imp, wait_time=15000, kern_size=5)[0]
+    ibun = InfBunny.find(imp, wait_time=15000, kern_size=2)[0]
     
     print [(str(id_), ibun.check_id(id_, 10, v=True)) for id_ in ids_neg]
     print [(str(id_), ibun.check_id(id_, 10, v=True)) for id_ in ids_pos]

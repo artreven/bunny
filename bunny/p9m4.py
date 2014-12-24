@@ -1,5 +1,7 @@
 """
 Holds functions for running Prover9 and Mace4 with some input.
+
+@attention: subprocesses for prover9 and mace4 are created on a separate socket "P9M4". It is necessary to launch the socket first.
 """
 import subprocess
 import os
