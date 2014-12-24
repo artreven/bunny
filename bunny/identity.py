@@ -60,7 +60,7 @@ class Identity(object):
                 str(self.right_term.name).strip())
     
     @classmethod
-    def make_identity(cls, id_str):
+    def str2id(cls, id_str):
         '''
         make identity from string
         '''

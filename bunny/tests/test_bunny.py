@@ -199,8 +199,8 @@ class TestBunny:
                    (1, 1): 1, (1, 0): 0}
         f1_dict = {0: 1, 1: 1}
         f0 = 0
-        self.id1 = bunny.identity.Identity.make_identity('x=-(x*a)')
-        self.id2 = bunny.identity.Identity.make_identity('x=x*a')
+        self.id1 = bunny.identity.Identity.str2id('x=-(x*a)')
+        self.id2 = bunny.identity.Identity.str2id('x=x*a')
         self.bunny = bunny.bunny.Bunny.dicts2bunny(f2_dict, f1_dict, f0)
 
     def tearDown(self):
@@ -226,8 +226,8 @@ class TestInfBunny():
     
     def test_find101(self):
         print '\ttest_find101\n'
-        id1 = bunny.identity.Identity.make_identity('x=a*(-x)') #45
-        id2 = bunny.identity.Identity.make_identity('x=-(a*x)') #55
+        id1 = bunny.identity.Identity.str2id('x=a*(-x)') #45
+        id2 = bunny.identity.Identity.str2id('x=-(a*x)') #55
         imp = fca.Implication({id1}, {id2})
         bunny_found = bunny.bunny.InfBunny.find(imp, wait_time=10, kern_size=1)[0]
         assert bunny_found != None
@@ -239,9 +239,9 @@ class TestInfBunny():
         
     def test_find102(self):
         print '\ttest_find102\n'
-        id45 = bunny.identity.Identity.make_identity('x=a*(-x)') #45
-        id50 = bunny.identity.Identity.make_identity('x=(-a)*x')
-        id55 = bunny.identity.Identity.make_identity('x=-(a*x)') #55
+        id45 = bunny.identity.Identity.str2id('x=a*(-x)') #45
+        id50 = bunny.identity.Identity.str2id('x=(-a)*x')
+        id55 = bunny.identity.Identity.str2id('x=-(a*x)') #55
         imp = fca.Implication({id45, id50}, {id55})
         bunny_found = bunny.bunny.InfBunny.find(imp, wait_time=10, kern_size=2)[0]
         assert bunny_found != None
@@ -253,8 +253,8 @@ class TestInfBunny():
         
     def test_find103(self):
         print '\ttest_find103\n'
-        id1 = bunny.identity.Identity.make_identity('x=a*(-x)') #45
-        id2 = bunny.identity.Identity.make_identity('x=-(a*x)') #55
+        id1 = bunny.identity.Identity.str2id('x=a*(-x)') #45
+        id2 = bunny.identity.Identity.str2id('x=-(a*x)') #55
         imp = fca.Implication({id2}, {id1})
         bunny_found = bunny.bunny.InfBunny.find(imp, wait_time=10, kern_size=3)[0]
         assert bunny_found != None
@@ -266,10 +266,10 @@ class TestInfBunny():
         
     def test_find104(self):
         print '\ttest_find104\n'
-        id1 = bunny.identity.Identity.make_identity('a=(-a)') #3
-        id2 = bunny.identity.Identity.make_identity('a=-(x*a)') #34
-        id3 = bunny.identity.Identity.make_identity('x=-(x*x)') #57
-        idn = bunny.identity.Identity.make_identity('a=(x*a)') #10
+        id1 = bunny.identity.Identity.str2id('a=(-a)') #3
+        id2 = bunny.identity.Identity.str2id('a=-(x*a)') #34
+        id3 = bunny.identity.Identity.str2id('x=-(x*x)') #57
+        idn = bunny.identity.Identity.str2id('a=(x*a)') #10
         #entspricht G_603 - G_618
         imp = fca.Implication({id1, id2, id3}, {idn})
         bunny_found = bunny.bunny.InfBunny.find(imp, wait_time=30, kern_size=2)[0]
@@ -282,14 +282,14 @@ class TestInfBunny():
     def test_find201(self):
         print '\ttest_find201\n'
         
-        id20 = bunny.identity.Identity.make_identity('a=-(-(-a))')
-        id22 = bunny.identity.Identity.make_identity('a=a*(-a)')
-        id24 = bunny.identity.Identity.make_identity('a=(-a)*a')
-        id32 = bunny.identity.Identity.make_identity('a=-(a*a)')
-        id45 = bunny.identity.Identity.make_identity('x=a*(-x)')
-        id50 = bunny.identity.Identity.make_identity('x=(-a)*x')
+        id20 = bunny.identity.Identity.str2id('a=-(-(-a))')
+        id22 = bunny.identity.Identity.str2id('a=a*(-a)')
+        id24 = bunny.identity.Identity.str2id('a=(-a)*a')
+        id32 = bunny.identity.Identity.str2id('a=-(a*a)')
+        id45 = bunny.identity.Identity.str2id('x=a*(-x)')
+        id50 = bunny.identity.Identity.str2id('x=(-a)*x')
         
-        id55 = bunny.identity.Identity.make_identity('x=-(a*x)')
+        id55 = bunny.identity.Identity.str2id('x=-(a*x)')
         
         imp = fca.Implication({id20, id22, id24, id32, id45, id50}, {id55})
         bunny_found = bunny.bunny.InfBunny.find(imp, wait_time=100, kern_size=3)[0]
@@ -304,14 +304,14 @@ class TestInfBunny():
         
     def test_find202(self):
         print '\ttest_find202\n'
-        id20 = bunny.identity.Identity.make_identity('a=-(-(-a))')
-        id24 = bunny.identity.Identity.make_identity('a=(-a)*a')
-        id32 = bunny.identity.Identity.make_identity('a=-(a*a)')
-        id33 = bunny.identity.Identity.make_identity('a=-(a*x)')
-        id50 = bunny.identity.Identity.make_identity('x=(-a)*x')
-        id51 = bunny.identity.Identity.make_identity('x=(-x)*a')
+        id20 = bunny.identity.Identity.str2id('a=-(-(-a))')
+        id24 = bunny.identity.Identity.str2id('a=(-a)*a')
+        id32 = bunny.identity.Identity.str2id('a=-(a*a)')
+        id33 = bunny.identity.Identity.str2id('a=-(a*x)')
+        id50 = bunny.identity.Identity.str2id('x=(-a)*x')
+        id51 = bunny.identity.Identity.str2id('x=(-x)*a')
         
-        id56 = bunny.identity.Identity.make_identity('x=-(x*a)')
+        id56 = bunny.identity.Identity.str2id('x=-(x*a)')
         
         imp = fca.Implication({id20, id24, id32, id33, id50, id51}, {id56})        
         bun = bunny.bunny.InfBunny.find(imp, wait_time=100, kern_size=3)[0]
@@ -319,17 +319,17 @@ class TestInfBunny():
         
     def test_find203(self):
         print '\ttest_find203\n'
-        id6 = bunny.identity.Identity.make_identity('a=-(-a)')
-        id22 = bunny.identity.Identity.make_identity('a=a*(-a)')
-        id26 = bunny.identity.Identity.make_identity('a=x*(-a)')
-        id32 = bunny.identity.Identity.make_identity('a=-(a*a)')
-        id34 = bunny.identity.Identity.make_identity('a=-(x*a)')
-        id39 = bunny.identity.Identity.make_identity('-a=a*a')
-        id47 = bunny.identity.Identity.make_identity('x=x*(-x)')
-        id55 = bunny.identity.Identity.make_identity('x=-(a*x)')
-        id65 = bunny.identity.Identity.make_identity('-x=x*x')
+        id6 = bunny.identity.Identity.str2id('a=-(-a)')
+        id22 = bunny.identity.Identity.str2id('a=a*(-a)')
+        id26 = bunny.identity.Identity.str2id('a=x*(-a)')
+        id32 = bunny.identity.Identity.str2id('a=-(a*a)')
+        id34 = bunny.identity.Identity.str2id('a=-(x*a)')
+        id39 = bunny.identity.Identity.str2id('-a=a*a')
+        id47 = bunny.identity.Identity.str2id('x=x*(-x)')
+        id55 = bunny.identity.Identity.str2id('x=-(a*x)')
+        id65 = bunny.identity.Identity.str2id('-x=x*x')
         
-        id41 = bunny.identity.Identity.make_identity('-a=x*a')
+        id41 = bunny.identity.Identity.str2id('-a=x*a')
         
         id_pos_ls = [id6, id22, id26, id32, id34, id39, id47, id55, id65]
         id_pos_ls = [id6, id26, id34, id47, id55]
@@ -344,15 +344,15 @@ class TestInfBunny():
         print '\ttest_find204\n'
         # [a = x*(-a), x = x, x = x*(-x), x = a*(-x), x = x*a, a = a*(-a), a = a*a] => -a = x*y
 
-        id1 = bunny.identity.Identity.make_identity('a=x*(-a)')
-        id2 = bunny.identity.Identity.make_identity('x=x')
-        id3 = bunny.identity.Identity.make_identity('x=x*(-x)')
-        id4 = bunny.identity.Identity.make_identity('x=a*(-x)')
-        id5 = bunny.identity.Identity.make_identity('x=x*a')
-        id6 = bunny.identity.Identity.make_identity('a=a*(-a)')
-        id7 = bunny.identity.Identity.make_identity('a=a*a')
+        id1 = bunny.identity.Identity.str2id('a=x*(-a)')
+        id2 = bunny.identity.Identity.str2id('x=x')
+        id3 = bunny.identity.Identity.str2id('x=x*(-x)')
+        id4 = bunny.identity.Identity.str2id('x=a*(-x)')
+        id5 = bunny.identity.Identity.str2id('x=x*a')
+        id6 = bunny.identity.Identity.str2id('a=a*(-a)')
+        id7 = bunny.identity.Identity.str2id('a=a*a')
         
-        idn = bunny.identity.Identity.make_identity('-a=x*y')
+        idn = bunny.identity.Identity.str2id('-a=x*y')
         
         id_pos_ls = [id1, id2, id3, id4, id5, id6, id7]
         
@@ -384,7 +384,7 @@ class TestInfBunny():
         imp = fca.Implication(ids_pos, ids_neg)
         # G_3 from Kestler's thesis
 
-        bun = bunny.bunny.InfBunny.find(imp, wait_time=15, kern_size=3)[0]
+        bun = bunny.bunny.InfBunny.find(imp, wait_time=25, kern_size=3)[0]
         assert bun != None
         
     def test_find300(self):

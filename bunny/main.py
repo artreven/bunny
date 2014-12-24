@@ -49,8 +49,8 @@ def ce_finder(imp, wait):
         found, reason = p9m4.mace4(imp, dest  + '/ces', wait / 100.)
         if not found == None:
             ans = (found, reason)
-            premise = map(lambda x: identity.Identity.func_str2id(x), imp.premise)
-            conclusion = map(lambda x: identity.Identity.func_str2id(x), imp.conclusion)
+            #premise = map(lambda x: identity.Identity.func_str2id(x), imp.premise)
+            #conclusion = map(lambda x: identity.Identity.func_str2id(x), imp.conclusion)
         else:
             premise = map(lambda x: identity.Identity.func_str2id(x), imp.premise)
             conclusion = map(lambda x: identity.Identity.func_str2id(x), imp.conclusion)
@@ -79,35 +79,6 @@ if __name__ == '__main__':
 #     ae_bunnies.step = int(step)
     ae_bunnies.run(100, 1)
     
-
-########MULTIPROCESSING
-import multiprocessing as mp
-import time
-
-def f(l, i):
-    l.acquire()
-    print 'hello world', i
-    l.release()
-    
-    ################################################
-#     lock = mp.Lock()
-# 
-#     for num in range(10):
-#         mp.Process(target=f, args=(lock, num)).start()
-#     
-#     p1 = mp.Process(target=time.sleep, args=(1000,))
-#     p2 = mp.Process(target=time.sleep, args=(3,))
-#     p1.start()
-#     p2.start()
-#     while p2.is_alive():
-#         pass
-#     print 'Is p2 alive? -', p2.is_alive()
-#     print 'Is p1 alive? -', p1.is_alive()
-#     p1.terminate()
-#     time.sleep(1)
-#     print 'Is p1 alive? -', p1.is_alive()
-#     print p1.exitcode, p2.exitcode
-    #################################################
 
 ######################Identities manually###########################
 ####SIZE = 2
