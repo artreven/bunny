@@ -857,43 +857,17 @@ def construct(imp, wait_time, kern_size=3):
 if __name__ == '__main__':
     import identity
     import fca
-    import cProfile
-    
-    import p9m4
-    
+        
     ###############################################
-    
-    bun_str = '''        INFINITE BUNNY
-f2:
-    f2(0, 0):= 0
-    f2(0, 1):= 3
-    f2(0, n+0):= n+2
-    f2(n-1, 0):= 1
-f1:
-    f1(0,):= 0
-    f1(1,):= 0
-    f1(2,):= 1
-    f1(3,):= 2
-    f1(n+0,):= n-1
-    f1(n+1,):= n+0
-    f1(n+2,):= n+1
-f0:
-    0'''
-    bun = InfBunny.read(bun_str)
-    print bun
-    bun.funcs["f2"].size = 2
-    bun.funcs["f1"].size = 2
-    bun.kern_size = 2
-    print bun.funcs["f1"](bun.funcs["f2"](bun.funcs["f1"](3),0))
-    print check_consistency(bun)
-    assert check_consistency(bun)
-    
-    imp_str = '''f0 = f1(f0), f0 = f2(f0,f0), x = f1(f1(f2(f0,x))), f0 = f1(f2(f1(x),f0)) => f1(f0) = f2(f1(x),f0)'''
+    imp_str = raw_input('Please, input implication:')
+    #imp_str = '''f0 = f1(f0), f0 = f2(f0,f0), x = f1(f1(f2(f0,x))), f0 = f1(f2(f1(x),f0)) => f1(f0) = f2(f1(x),f0)'''
     premise, conclusion = imp_str.split('=>')
     premise_ids = map(lambda x: x.strip(), premise.split(', '))
     conclusion_ids = map(lambda x: x.strip(), conclusion.split(', '))
-    ids_pos = map(lambda x: identity.Identity.func_str2id(x), premise_ids)
-    ids_neg = map(lambda x: identity.Identity.func_str2id(x), conclusion_ids)
+    #ids_pos = map(lambda x: identity.Identity.func_str2id(x), premise_ids)
+    #ids_neg = map(lambda x: identity.Identity.func_str2id(x), conclusion_ids)
+    ids_pos = map(lambda x: identity.Identity.str2id(x), premise_ids)
+    ids_neg = map(lambda x: identity.Identity.str2id(x), conclusion_ids)
     imp = fca.Implication(ids_pos, ids_neg)
     
     ibun = InfBunny.find(imp, wait_time=15000, kern_size=2)[0]

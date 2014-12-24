@@ -456,3 +456,17 @@ class TestInfBunny():
         assert ibun != None
         assert not all(ibun.check_id(id_, 10) for id_ in ids_neg)
         assert all(ibun.check_id(id_, 10) for id_ in ids_pos)
+        
+    def test_find400(self):
+        imp_str = '''f0 = f1(f0), f0 = f2(f0,f0), x = f1(f1(f2(f0,x))), f0 = f1(f2(f1(x),f0)) => f1(f0) = f2(f1(x),f0)'''
+        premise, conclusion = imp_str.split('=>')
+        premise_ids = map(lambda x: x.strip(), premise.split(', '))
+        conclusion_ids = map(lambda x: x.strip(), conclusion.split(', '))
+        ids_pos = map(lambda x: bunny.identity.Identity.func_str2id(x), premise_ids)
+        ids_neg = map(lambda x: bunny.identity.Identity.func_str2id(x), conclusion_ids)
+        imp = fca.Implication(ids_pos, ids_neg)
+            
+        ibun = bunny.bunny.InfBunny.find(imp, wait_time=75, kern_size=3)[0]
+        assert ibun != None
+        assert not all(ibun.check_id(id_, 10) for id_ in ids_neg)
+        assert all(ibun.check_id(id_, 10) for id_ in ids_pos)
